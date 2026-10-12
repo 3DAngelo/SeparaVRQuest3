@@ -11,6 +11,8 @@ public class CustomGrabInteractable : XRGrabInteractable
 
 	private Container currentTargetContainer;
 
+	private bool aimSelecting;
+
 	protected override void OnSelectEntered(SelectEnterEventArgs args)
 	{
 		base.OnSelectEntered(args);
@@ -22,6 +24,12 @@ public class CustomGrabInteractable : XRGrabInteractable
 		if (args.interactorObject is NearFarInteractor nearFar)
 		{
 			farInteractor = nearFar;
+			currentTargetContainer = null;
+			if (!aimSelecting)
+			{
+				aimSelecting = true;
+				Container.BeginAimSelection();
+			}
 		}
 		if (GameManager.Instance != null)
 		{
@@ -52,60 +60,37 @@ public class CustomGrabInteractable : XRGrabInteractable
 			}
 		}
 		currentTargetContainer = null;
+		if (!isSelected)
+		{
+			farInteractor = null;
+			if (aimSelecting)
+			{
+				aimSelecting = false;
+				Container.EndAimSelection();
+			}
+		}
 	}
 
 	private void Update()
 	{
-		if (farInteractor != null)
+		if (farInteractor == null || !isSelected)
 		{
-			// Hand tracking: the interactor's own transform is not tracked on the hand rig, the pose that aims is the
-			// far caster's cast origin (hand: "Aim Pose"; controller: the interactor transform itself, as before).
-			Transform aim = farInteractor.transform;
-			if (farInteractor.farInteractionCaster != null && farInteractor.farInteractionCaster.castOrigin != null)
-			{
-				aim = farInteractor.farInteractionCaster.castOrigin;
-			}
-			Ray ray = new Ray(aim.position, aim.forward);
-			Debug.DrawRay(ray.origin, ray.direction * 10f, Color.red, 5f);
-			RaycastHit hit;
-			if (RaycastIgnoringSelf(ray, 10f, out hit))
-			{
-				Container container = hit.collider.GetComponent<Container>();
-				if (container != null && currentTargetContainer != container)
-				{
-					currentTargetContainer = container;
-					Debug.Log("New Current Container: " + container.descripcion);
-				}
-			}
-			else
-			{
-				currentTargetContainer = null;
-				Debug.Log("No container selected");
-			}
+			return;
 		}
-	}
-
-	private static readonly RaycastHit[] aimHits = new RaycastHit[32];
-
-	// Same as Physics.Raycast (nearest hit) but skipping this object's own colliders: with a hand the object is held
-	// at the pinch point, in front of the aim ray origin, and would otherwise hide the container behind it.
-	private bool RaycastIgnoringSelf(Ray ray, float maxDistance, out RaycastHit nearest)
-	{
-		nearest = default(RaycastHit);
-		bool found = false;
-		int count = Physics.RaycastNonAlloc(ray, aimHits, maxDistance);
-		for (int i = 0; i < count; i++)
+		// While the object is held, the container is chosen by the HORIZONTAL direction of the aim only (pitch is
+		// ignored): aiming to the right side but too high or too low still counts. The chosen container is the one
+		// highlighted, and the one used on release. Aiming clearly away from every container chooses none.
+		// Hand: aim = the hand's aim pose. Controller: aim = the controller pose (far caster origin), as before.
+		Vector3 origin;
+		Vector3 direction;
+		HandCloseGrab.GetAim(farInteractor, transform, out origin, out direction);
+		Debug.DrawRay(origin, direction * 10f, Color.red);
+		Container container = Container.PickByHorizontalAim(origin, direction, currentTargetContainer);
+		if (container != currentTargetContainer)
 		{
-			if (aimHits[i].collider.transform.IsChildOf(transform))
-			{
-				continue;
-			}
-			if (!found || aimHits[i].distance < nearest.distance)
-			{
-				nearest = aimHits[i];
-				found = true;
-			}
+			currentTargetContainer = container;
+			Container.SetAimTarget(container);
+			Debug.Log(container != null ? "New Current Container: " + container.descripcion : "No container selected");
 		}
-		return found;
 	}
 }
