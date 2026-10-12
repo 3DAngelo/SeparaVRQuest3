@@ -1,0 +1,2550 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39fa3d8997a24136984ca6e2c99902bc, type: 3}
+  m_Name: XRI Default Input Actions
+  m_EditorClassIdentifier:
+  m_ActionMaps:
+  - m_Name: XRI Head
+    m_Id: 09ff3ccc-21b4-4346-a3a2-7c978b5af892
+    m_Asset: {fileID: 11400000}
+    m_Actions:
+    - m_Name: Position
+      m_Type: 0
+      m_ExpectedControlType: Vector3
+      m_Id: 1a9029f8-7a46-46b9-9eff-e9ae8365f611
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Rotation
+      m_Type: 0
+      m_ExpectedControlType: Quaternion
+      m_Id: aed87fe6-2b01-4dd2-a8fa-195578fd8158
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Is Tracked
+      m_Type: 1
+      m_ExpectedControlType: Button
+      m_Id: 6bb4e248-e42b-47c3-b66c-79566508ca74
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Tracking State
+      m_Type: 0
+      m_ExpectedControlType: Integer
+      m_Id: 08654a17-c094-4bbd-8946-415ae4ce2406
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Eye Gaze Position
+      m_Type: 0
+      m_ExpectedControlType: Vector3
+      m_Id: dde820a2-0462-4756-be47-630b5b56c115
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Eye Gaze Rotation
+      m_Type: 0
+      m_ExpectedControlType: Quaternion
+      m_Id: 8ac32629-4403-4068-aae5-2cd243e230c2
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Eye Gaze Is Tracked
+      m_Type: 1
+      m_ExpectedControlType: Button
+      m_Id: ea26ba43-844b-4585-817a-2f124b571813
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Eye Gaze Tracking State
+      m_Type: 0
+      m_ExpectedControlType: Integer
+      m_Id: 73053154-2fbc-4d78-9cac-000282b64f79
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    m_Bindings:
+    - m_Name:
+      m_Id: cff1f981-6e1f-4e2c-a90c-715a0ea2e80e
+      m_Path: '<XRHMD>/centerEyePosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: 4d22c160-9642-4784-bed3-f108d9099185
+      m_Path: '<HandheldARInputDevice>/devicePosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: e2017383-a3f6-4c46-acb1-012b8eece9cc
+      m_Path: '<XRHMD>/centerEyeRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Rotation
+      m_Flags: 0
+    - m_Name:
+      m_Id: 30a88e64-475a-4a1c-aca0-80b6a2bc3327
+      m_Path: '<HandheldARInputDevice>/deviceRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Rotation
+      m_Flags: 0
+    - m_Name: Quaternion Fallback
+      m_Id: fd9bd2d1-a464-4069-bf55-7f7a3cdb5a96
+      m_Path: QuaternionFallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Rotation
+      m_Flags: 4
+    - m_Name: first
+      m_Id: ef9a3bee-0af0-4688-81d3-49c2d9be0def
+      m_Path: '<EyeGaze>/pose/rotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Rotation
+      m_Flags: 8
+    - m_Name: second
+      m_Id: aaf13e7c-a814-4c6e-9349-042da0cb27e9
+      m_Path: '<XRHMD>/centerEyeRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Rotation
+      m_Flags: 8
+    - m_Name: third
+      m_Id: 3e829ba4-2fad-45ea-8114-7670f0e484be
+      m_Path:
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Rotation
+      m_Flags: 8
+    - m_Name: Vector 3 Fallback
+      m_Id: 0cf0b092-6006-474b-9cf5-dc4039450f39
+      m_Path: Vector3Fallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Position
+      m_Flags: 4
+    - m_Name: first
+      m_Id: 872dc9a3-bab9-4b3f-9f84-8d12371f1f67
+      m_Path: '<EyeGaze>/pose/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Position
+      m_Flags: 8
+    - m_Name: second
+      m_Id: 2f870b88-8825-4a62-b02e-b5a523723446
+      m_Path: '<XRHMD>/centerEyePosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Position
+      m_Flags: 8
+    - m_Name: third
+      m_Id: eaececb1-b4a3-4b47-83c2-60562a364085
+      m_Path:
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Position
+      m_Flags: 8
+    - m_Name: Integer Fallback
+      m_Id: 1a6685cf-ae82-4f22-a967-75610a8e71ed
+      m_Path: IntegerFallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Tracking State
+      m_Flags: 4
+    - m_Name: first
+      m_Id: 0dc9d652-871d-4ba5-94a1-50cf8218009a
+      m_Path: '<EyeGaze>/pose/trackingState'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Tracking State
+      m_Flags: 8
+    - m_Name: second
+      m_Id: 9bbd034f-9254-4dd5-9df7-d84f53b0bc8d
+      m_Path: '<XRHMD>/trackingState'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Tracking State
+      m_Flags: 8
+    - m_Name: third
+      m_Id: d5e35a2f-03c4-432a-8e5e-d200278bf0a9
+      m_Path:
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Tracking State
+      m_Flags: 8
+    - m_Name:
+      m_Id: 43a7b1a1-e99a-4346-a058-5b68c535729d
+      m_Path: '<XRHMD>/trackingState'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Tracking State
+      m_Flags: 0
+    - m_Name:
+      m_Id: 15eff92f-dac7-4e6e-986c-08b3f1e73fac
+      m_Path: '<XRHMD>/isTracked'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Is Tracked
+      m_Flags: 0
+    - m_Name: Button Fallback
+      m_Id: c262df21-2ffb-4295-93cc-8fdb5649da7e
+      m_Path: ButtonFallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Is Tracked
+      m_Flags: 4
+    - m_Name: first
+      m_Id: f77492f8-09ee-49d0-b821-7c31cb5c2a16
+      m_Path: '<EyeGaze>/pose/isTracked'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Is Tracked
+      m_Flags: 8
+    - m_Name: second
+      m_Id: 960252ae-88e8-427a-ac9f-ecac6fb3c7d1
+      m_Path: '<XRHMD>/isTracked'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Is Tracked
+      m_Flags: 8
+    - m_Name: third
+      m_Id: dfc94c22-a115-471f-9f17-8cb6bc7f6637
+      m_Path:
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Eye Gaze Is Tracked
+      m_Flags: 8
+  - m_Name: XRI Left
+    m_Id: 5fe596f9-1b7b-49b7-80a7-3b5195caf74d
+    m_Asset: {fileID: 11400000}
+    m_Actions:
+    - m_Name: Position
+      m_Type: 0
+      m_ExpectedControlType: Vector3
+      m_Id: 83a7af0b-87e3-42c3-a909-95fbf8091e4f
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Rotation
+      m_Type: 0
+      m_ExpectedControlType: Quaternion
+      m_Id: cb6b7130-2bac-4ef7-abe4-6991ae7d419d
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Is Tracked
+      m_Type: 1
+      m_ExpectedControlType: Button
+      m_Id: 82eb6741-beef-48d3-83ab-a957dc1caa1e
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Tracking State
+      m_Type: 0
+      m_ExpectedControlType: Integer
+      m_Id: d20fc51c-7916-43a7-8b03-706049966aea
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Haptic Device
+      m_Type: 2
+      m_ExpectedControlType:
+      m_Id: 664a62b0-e178-421d-b3f8-014eec01591d
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: Aim Position
+      m_Type: 0
+      m_ExpectedControlType: Vector3
+      m_Id: c73a0160-3d9b-4dde-96f9-6a390e68778c
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Aim Rotation
+      m_Type: 0
+      m_ExpectedControlType: Quaternion
+      m_Id: f208faac-e869-4280-ac9c-9b3d0ab819bb
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Meta Aim Flags
+      m_Type: 0
+      m_ExpectedControlType: Integer
+      m_Id: f98e71db-49b4-4882-8991-a0e386733e87
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Pinch Position
+      m_Type: 0
+      m_ExpectedControlType: Vector3
+      m_Id: cac52a91-5970-4ad2-8c86-a8c0e91a1837
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Poke Position
+      m_Type: 0
+      m_ExpectedControlType: Vector3
+      m_Id: 4c557d81-3795-4355-a83e-6f886221d011
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Poke Rotation
+      m_Type: 0
+      m_ExpectedControlType: Quaternion
+      m_Id: 0565b7f7-f841-4395-98df-a77f4dd6d9c9
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Grip Position
+      m_Type: 0
+      m_ExpectedControlType: Vector3
+      m_Id: e1240870-ef45-4f3e-8110-ff1b9049c4ca
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Grip Rotation
+      m_Type: 0
+      m_ExpectedControlType: Quaternion
+      m_Id: 41873a55-b316-4dbe-96e6-93477eef5e47
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Thumbstick
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: c01850c4-700b-4ae6-a187-a894afef5bbd
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    m_Bindings:
+    - m_Name: Quaternion Fallback
+      m_Id: 61466a56-4ee4-47b1-aa6a-4806de1de5f2
+      m_Path: QuaternionFallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Rotation
+      m_Flags: 4
+    - m_Name: first
+      m_Id: afdcfbff-e241-4fdd-a6d1-23b0bf273360
+      m_Path: '<XRController>{LeftHand}/pointerRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Rotation
+      m_Flags: 8
+    - m_Name: second
+      m_Id: ed03d944-4c09-4c38-8b68-5c844e18ca7c
+      m_Path: '<XRController>{LeftHand}/deviceRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Rotation
+      m_Flags: 8
+    - m_Name: third
+      m_Id: c98fc8c8-7fc6-4909-89b6-c5b7568e7275
+      m_Path: '<XRHandDevice>{LeftHand}/deviceRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Rotation
+      m_Flags: 8
+    - m_Name: Vector 3 Fallback
+      m_Id: 14aeff85-d719-43ff-a124-b1cd7ca8686d
+      m_Path: Vector3Fallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Position
+      m_Flags: 4
+    - m_Name: first
+      m_Id: abf752ec-feee-4d51-b530-f0870f48acc9
+      m_Path: '<XRController>{LeftHand}/pointerPosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Position
+      m_Flags: 8
+    - m_Name: second
+      m_Id: 6580b669-0651-401c-9779-85ef22689130
+      m_Path: '<XRController>{LeftHand}/devicePosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Position
+      m_Flags: 8
+    - m_Name: third
+      m_Id: ae101942-9eaa-4c53-a388-cafc3fd89bdf
+      m_Path: '<XRHandDevice>{LeftHand}/devicePosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Position
+      m_Flags: 8
+    - m_Name:
+      m_Id: acdf9550-5529-4ff7-8558-73ecdf0d75bd
+      m_Path: '<XRController>{LeftHand}/*'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Haptic Device
+      m_Flags: 0
+    - m_Name:
+      m_Id: 97a0351f-659b-482a-8fa0-19015ccd055e
+      m_Path: '<XRController>{LeftHand}/trackingState'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Tracking State
+      m_Flags: 0
+    - m_Name:
+      m_Id: 34454fec-7610-497a-b1a5-d3d5f01b312c
+      m_Path: '<XRHandDevice>{LeftHand}/trackingState'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Tracking State
+      m_Flags: 0
+    - m_Name:
+      m_Id: 28df8d2f-b563-4377-bd11-6c8932ee591c
+      m_Path: '<MetaAimHand>{LeftHand}/devicePosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: 8ee39b25-fde6-4195-bc6e-68caadef9183
+      m_Path: '<HandInteraction>{LeftHand}/pointer/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: ec4a1046-3843-445d-8ad4-a769823faa86
+      m_Path: '<HandInteractionPoses>{LeftHand}/pointer/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: d29757d4-ec35-4477-8a26-1d14acd14ba9
+      m_Path: '<HoloLensHand>{LeftHand}/pointer/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: 2623b909-75bd-40da-97bd-ae1ecfb0a89b
+      m_Path: '<MetaAimHand>{LeftHand}/deviceRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Rotation
+      m_Flags: 0
+    - m_Name:
+      m_Id: c3ff2c3c-d1ef-40c9-8777-72ee03df3ff3
+      m_Path: '<HandInteraction>{LeftHand}/pointer/rotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Rotation
+      m_Flags: 0
+    - m_Name:
+      m_Id: 68633061-addf-447b-969e-06249302eaad
+      m_Path: '<HandInteractionPoses>{LeftHand}/pointer/rotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Rotation
+      m_Flags: 0
+    - m_Name:
+      m_Id: 4848899c-8c90-455a-a915-6422290f501b
+      m_Path: '<HoloLensHand>{LeftHand}/pointer/rotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Rotation
+      m_Flags: 0
+    - m_Name: Vector 3 Fallback
+      m_Id: aff6849b-544f-473c-9d7e-da40488aa6ab
+      m_Path: Vector3Fallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Position
+      m_Flags: 4
+    - m_Name: first
+      m_Id: e62f5918-8922-4a59-ae42-179b1fde0d29
+      m_Path: '<XRHandDevice>{LeftHand}/pinchPosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Position
+      m_Flags: 8
+    - m_Name: second
+      m_Id: 1e9cdc2b-24e6-4624-9bd8-02c7dcf68fb4
+      m_Path: '<HandInteraction>{LeftHand}/pinchPose/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Position
+      m_Flags: 8
+    - m_Name: third
+      m_Id: 0adea6d4-f14c-4243-8217-dd63b6529bcc
+      m_Path: '<HandInteractionPoses>{LeftHand}/pinchPose/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Position
+      m_Flags: 8
+    - m_Name: Vector 3 Fallback
+      m_Id: 2ef93166-d4e5-471d-8321-71e7cdec9220
+      m_Path: Vector3Fallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Position
+      m_Flags: 4
+    - m_Name: first
+      m_Id: 55020194-7022-4059-8424-8ecc0de92c13
+      m_Path: '<XRHandDevice>{LeftHand}/pokePosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Position
+      m_Flags: 8
+    - m_Name: second
+      m_Id: 9a8820cc-2172-4641-9fae-0c416b2649e2
+      m_Path: '<HandInteraction>{LeftHand}/pokePose/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Position
+      m_Flags: 8
+    - m_Name: third
+      m_Id: ef0a4717-47f8-47a3-8dae-fd0cba366115
+      m_Path: '<HandInteractionPoses>{LeftHand}/pokePose/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Position
+      m_Flags: 8
+    - m_Name: Quaternion Fallback
+      m_Id: 892e5765-05a7-460a-942c-32e8a36bd441
+      m_Path: QuaternionFallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Rotation
+      m_Flags: 4
+    - m_Name: first
+      m_Id: 5f5fb46a-effc-4105-bb74-d30dc9cd1f43
+      m_Path: '<XRHandDevice>{LeftHand}/pokeRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Rotation
+      m_Flags: 8
+    - m_Name: second
+      m_Id: 8fba8372-e2dd-4a31-8048-45d49484323e
+      m_Path: '<HandInteraction>{LeftHand}/pokePose/rotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Rotation
+      m_Flags: 8
+    - m_Name: third
+      m_Id: 8c1d4e9b-88f5-4966-a6e4-0f22f7bb896d
+      m_Path: '<HandInteractionPoses>{LeftHand}/pokePose/rotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Rotation
+      m_Flags: 8
+    - m_Name:
+      m_Id: f1de7b81-80d1-4207-8f19-4fb96a537bb3
+      m_Path: '<XRController>{LeftHand}/isTracked'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Is Tracked
+      m_Flags: 0
+    - m_Name:
+      m_Id: d9f33fe3-b3bf-48c1-a8bc-dd6a4ddfba94
+      m_Path: '<XRHandDevice>{LeftHand}/isTracked'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Is Tracked
+      m_Flags: 0
+    - m_Name:
+      m_Id: 286f44f6-74a5-4f92-8468-42445c7a3cb8
+      m_Path: '<MetaAimHand>{LeftHand}/aimFlags'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Meta Aim Flags
+      m_Flags: 0
+    - m_Name:
+      m_Id: 21a4b6f9-1ebe-434f-b572-066a77b04c48
+      m_Path: '<XRHandDevice>{LeftHand}/gripPosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Grip Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: 3c1f9e74-aba4-41d6-b519-90ed563be5d7
+      m_Path: '<XRHandDevice>{LeftHand}/gripRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Grip Rotation
+      m_Flags: 0
+    - m_Name:
+      m_Id: 0123e5fd-aec0-4ab3-b201-2e6c65d2b93e
+      m_Path: '<XRController>{LeftHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Thumbstick
+      m_Flags: 0
+  - m_Name: XRI Left Interaction
+    m_Id: 7a5e7537-cc30-4eb1-a544-6946baa8f3eb
+    m_Asset: {fileID: 11400000}
+    m_Actions:
+    - m_Name: Select
+      m_Type: 1
+      m_ExpectedControlType:
+      m_Id: 33754c03-48ec-46ef-9bc6-22ed6bfdd8e8
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: Select Value
+      m_Type: 0
+      m_ExpectedControlType: Axis
+      m_Id: e6005f29-e4c1-4f3b-8bf7-3a28bab5ca9c
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Activate
+      m_Type: 1
+      m_ExpectedControlType: Button
+      m_Id: 0c0991c5-d329-4afc-8892-1076b440477c
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: Activate Value
+      m_Type: 0
+      m_ExpectedControlType: Axis
+      m_Id: 0c3d0ec9-85a1-45b3-839b-1ca43f859ecd
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: UI Press
+      m_Type: 1
+      m_ExpectedControlType:
+      m_Id: 7e1eced7-c774-4fe5-be8f-d8711f646d9e
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: UI Press Value
+      m_Type: 0
+      m_ExpectedControlType: Axis
+      m_Id: f241c1aa-1050-4338-b2bf-a4a47776693d
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: UI Scroll
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: a5372626-7022-4ba7-b152-6f26318fd8a8
+      m_Processors: InvertVector2(invertY=false)
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Translate Manipulation
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: bfa204c7-3c92-4193-bad1-39eb71920042
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Rotate Manipulation
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 21b75b25-12ad-410f-b4f8-a7745b7aca27
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Directional Manipulation
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 93bd97c5-fd23-4853-8045-1b12324aa24e
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Scale Toggle
+      m_Type: 1
+      m_ExpectedControlType: Button
+      m_Id: 80ed7d74-56de-473c-bf76-da3bdd16b562
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: Scale Over Time
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 2257500c-1efb-4f69-a54d-ed5db2708616
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    m_Bindings:
+    - m_Name:
+      m_Id: 71a4d23f-3e9a-4513-923b-ba388c5e84bf
+      m_Path: '<XRController>{LeftHand}/{GripButton}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select
+      m_Flags: 0
+    - m_Name:
+      m_Id: 73325635-d9e5-481a-9279-ae7be089422d
+      m_Path: '<MetaAimHand>{LeftHand}/indexPressed'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select
+      m_Flags: 0
+    - m_Name:
+      m_Id: 3bbf9f24-2edd-41b9-8456-683298f1e58c
+      m_Path: '<HandInteraction>{LeftHand}/graspFirm'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select
+      m_Flags: 0
+    - m_Name:
+      m_Id: a86585c7-1d41-40e2-a7ca-bb76cca5c32a
+      m_Path: '<HandInteraction>{LeftHand}/pinchTouched'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select
+      m_Flags: 0
+    - m_Name:
+      m_Id: ebab6345-d4f7-4a42-94b3-12d4464de218
+      m_Path: '<HoloLensHand>{LeftHand}/squeezePressed'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select
+      m_Flags: 0
+    - m_Name:
+      m_Id: 49a23327-a116-48c0-8af9-0d2c50c15a88
+      m_Path: '<XRController>{LeftHand}/{Grip}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: 304be843-4b23-45d9-89fa-005ac163d9b9
+      m_Path: '<MetaAimHand>{LeftHand}/pinchStrengthIndex'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: 2a4b758a-252a-484c-9a26-438954189c08
+      m_Path: '<HandInteraction>{LeftHand}/graspValue'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: bc272ed6-7655-4292-9c21-e5b87bec4350
+      m_Path: '<HandInteraction>{LeftHand}/pinchValue'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: a8d99ae3-e736-4370-ad5e-9fa45cb7a1be
+      m_Path: '<HoloLensHand>{LeftHand}/squeeze'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: 487f4f2e-9e9b-49aa-b0f2-4037a24624f5
+      m_Path: '<XRController>{LeftHand}/{TriggerButton}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Activate
+      m_Flags: 0
+    - m_Name:
+      m_Id: 3b8b1b59-2fdc-4998-8259-50341075d9a2
+      m_Path: '<XRController>{LeftHand}/{Trigger}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Activate Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: b34c79c1-ab5e-4851-87ac-abc43705eae0
+      m_Path: '<XRController>{LeftHand}/{TriggerButton}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press
+      m_Flags: 0
+    - m_Name:
+      m_Id: a5bf6a12-a026-46d1-a793-7252c49aaf66
+      m_Path: '<MetaAimHand>{LeftHand}/indexPressed'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press
+      m_Flags: 0
+    - m_Name:
+      m_Id: fc8b2287-429e-4be4-a34b-cca7c50eeb52
+      m_Path: '<HandInteraction>{LeftHand}/pointerActivated'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press
+      m_Flags: 0
+    - m_Name:
+      m_Id: ca931b95-39e0-4db1-9887-f5a5f68298d4
+      m_Path: '<HoloLensHand>{LeftHand}/selectPressed'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press
+      m_Flags: 0
+    - m_Name:
+      m_Id: 71d94579-1bf4-4034-ab9e-e7166842128f
+      m_Path: '<XRController>{LeftHand}/{Trigger}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: d250c9be-4bf2-4b5c-8962-4fcf5d53bdb3
+      m_Path: '<MetaAimHand>{LeftHand}/pinchStrengthIndex'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: c4c2fc93-75fe-4910-95ca-6b1cc163a48a
+      m_Path: '<HandInteraction>{LeftHand}/pointerActivateValue'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: c7b5ae56-e532-43a3-a053-8d66df507df1
+      m_Path: '<HoloLensHand>{LeftHand}/select'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: 8ed313a6-c966-4669-8a62-4bb2319d485b
+      m_Path: '<XRController>{LeftHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors: ScaleVector2(y=0),StickDeadzone
+      m_Groups:
+      m_Action: Rotate Manipulation
+      m_Flags: 0
+    - m_Name:
+      m_Id: 7b30ca4b-9f98-4a44-9af5-a89412d5cdc8
+      m_Path: '<XRController>{LeftHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Scroll
+      m_Flags: 0
+    - m_Name:
+      m_Id: 8f872fc5-75dc-49e5-9bbd-f2e4d4498c65
+      m_Path: '<XRController>{LeftHand}/{Primary2DAxisClick}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Scale Toggle
+      m_Flags: 0
+    - m_Name:
+      m_Id: b21d690b-51fc-413f-a887-08a2a39af3fc
+      m_Path: '<XRController>{LeftHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors: ScaleVector2(x=0),StickDeadzone
+      m_Groups:
+      m_Action: Scale Over Time
+      m_Flags: 0
+    - m_Name:
+      m_Id: 5fe0ed53-b4d3-4cd8-b567-397a7d1e1c6a
+      m_Path: '<XRController>{LeftHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Directional Manipulation
+      m_Flags: 0
+    - m_Name:
+      m_Id: 370f21e3-a80b-4b07-990b-299c2da0929a
+      m_Path: '<XRController>{LeftHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors: ScaleVector2(x=0),StickDeadzone
+      m_Groups:
+      m_Action: Translate Manipulation
+      m_Flags: 0
+  - m_Name: XRI Left Locomotion
+    m_Id: 22336389-9fb1-4c2c-8635-0ed30db0d29e
+    m_Asset: {fileID: 11400000}
+    m_Actions:
+    - m_Name: Teleport Mode
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: a21db72c-4843-4839-b4d0-3ce8d287cb86
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Teleport Mode Cancel
+      m_Type: 1
+      m_ExpectedControlType: Button
+      m_Id: 89ce8348-6001-41a3-85b9-f8f2e2dcad7c
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: Turn
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 9164e093-ebd4-4923-af32-1b52f31c2d66
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Snap Turn
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 8c14e969-a054-4f12-840c-4e0bd85173d9
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Move
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 9693e25f-8a4f-4aed-842f-3961243c69a1
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Grab Move
+      m_Type: 1
+      m_ExpectedControlType: Button
+      m_Id: c5a6d766-d487-42ae-b293-da4749469e18
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    m_Bindings:
+    - m_Name:
+      m_Id: 8da6ed3a-f621-49fe-8c76-1f6b7d7754d6
+      m_Path: '<XRController>{LeftHand}/{Primary2DAxis}'
+      m_Interactions: Sector(directions=1)
+      m_Processors:
+      m_Groups:
+      m_Action: Teleport Mode
+      m_Flags: 0
+    - m_Name:
+      m_Id: b8aebee7-fa03-43d4-bfb7-77a3f87452cc
+      m_Path: '<XRController>{LeftHand}/{GripButton}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Teleport Mode Cancel
+      m_Flags: 0
+    - m_Name:
+      m_Id: 99cb7ad1-51ec-4611-af68-92a85f2c17d6
+      m_Path: '<XRController>{LeftHand}/{Primary2DAxis}'
+      m_Interactions: Sector(directions=12,sweepBehavior=1),Sector(directions=2,sweepBehavior=2)
+      m_Processors:
+      m_Groups:
+      m_Action: Turn
+      m_Flags: 0
+    - m_Name:
+      m_Id: 8e383b1a-270f-4c20-819b-89a59cffb498
+      m_Path: '<XRController>{LeftHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors: StickDeadzone
+      m_Groups:
+      m_Action: Move
+      m_Flags: 0
+    - m_Name:
+      m_Id: 9e2fa814-8cbd-4c65-a60d-a1503f30ffd8
+      m_Path: '<XRController>{LeftHand}/{GripButton}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Grab Move
+      m_Flags: 0
+    - m_Name:
+      m_Id: a46b49d0-0754-4dac-a9a5-a822e10751f2
+      m_Path: '<XRController>{LeftHand}/{Primary2DAxis}'
+      m_Interactions: Sector(directions=12,sweepBehavior=1),Sector(directions=2,sweepBehavior=2)
+      m_Processors:
+      m_Groups:
+      m_Action: Snap Turn
+      m_Flags: 0
+  - m_Name: XRI Right
+    m_Id: 7960f8ef-2bf3-4281-aecc-4c03809d6c8c
+    m_Asset: {fileID: 11400000}
+    m_Actions:
+    - m_Name: Position
+      m_Type: 0
+      m_ExpectedControlType: Vector3
+      m_Id: c4990d70-7b8a-4ce1-b03c-da86716b8352
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Rotation
+      m_Type: 0
+      m_ExpectedControlType: Quaternion
+      m_Id: ee6bf5bf-bb0a-4a50-8327-cb654b19e298
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Is Tracked
+      m_Type: 1
+      m_ExpectedControlType:
+      m_Id: a705ffe4-b2c8-4b78-847f-25257d4e30af
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Tracking State
+      m_Type: 0
+      m_ExpectedControlType: Integer
+      m_Id: 167ea203-5bfb-4d74-bde9-8026b7483102
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Haptic Device
+      m_Type: 2
+      m_ExpectedControlType:
+      m_Id: 57b2a1b4-3290-46d6-ac07-4854ee8f91b1
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: Aim Position
+      m_Type: 0
+      m_ExpectedControlType: Vector3
+      m_Id: daf49d5d-4ba8-4bf7-9010-e7cae2096907
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Aim Rotation
+      m_Type: 0
+      m_ExpectedControlType: Quaternion
+      m_Id: 148c182f-63ef-4709-8057-f6ea8070cb5c
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Meta Aim Flags
+      m_Type: 0
+      m_ExpectedControlType: Integer
+      m_Id: 93a75a21-033e-440c-9954-ff264afb2db9
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Pinch Position
+      m_Type: 0
+      m_ExpectedControlType: Vector3
+      m_Id: 7a2e5dcd-3e49-4622-90ea-6607994f2be0
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Poke Position
+      m_Type: 0
+      m_ExpectedControlType: Vector3
+      m_Id: 496d56bd-afd7-495b-a326-16e4ef742bc1
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Poke Rotation
+      m_Type: 0
+      m_ExpectedControlType: Quaternion
+      m_Id: 3767652c-5427-421b-8f8d-660106453cb1
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Grip Position
+      m_Type: 0
+      m_ExpectedControlType: Vector3
+      m_Id: defe4495-ba8f-4958-b2fb-98d889e45ac5
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Grip Rotation
+      m_Type: 0
+      m_ExpectedControlType: Quaternion
+      m_Id: 6bc56065-b0db-4265-8cef-5c7d4f40128a
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Thumbstick
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: b8c0ccd3-e1b6-4913-96b3-e0864c9ac6bd
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    m_Bindings:
+    - m_Name: Quaternion Fallback
+      m_Id: 84e51e1c-1b95-4f3e-a61f-29da6c1f0816
+      m_Path: QuaternionFallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Rotation
+      m_Flags: 4
+    - m_Name: first
+      m_Id: 3722d501-eb80-4f61-9361-08a5ea7a1394
+      m_Path: '<XRController>{RightHand}/pointerRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Rotation
+      m_Flags: 8
+    - m_Name: second
+      m_Id: 2e6ad191-d5aa-4919-aac6-295c83387a72
+      m_Path: '<XRController>{RightHand}/deviceRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Rotation
+      m_Flags: 8
+    - m_Name: third
+      m_Id: b9ecb60d-341e-47cf-b50a-41d5815af8b0
+      m_Path: '<XRHandDevice>{RightHand}/deviceRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Rotation
+      m_Flags: 8
+    - m_Name: Vector 3 Fallback
+      m_Id: 74e968f1-ad08-4a82-a68d-764517faecef
+      m_Path: Vector3Fallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Position
+      m_Flags: 4
+    - m_Name: first
+      m_Id: 9717e367-64a4-440a-9974-1e641d753eb2
+      m_Path: '<XRController>{RightHand}/pointerPosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Position
+      m_Flags: 8
+    - m_Name: second
+      m_Id: 0794a41d-29ef-48ec-a452-6b7de29b52fa
+      m_Path: '<XRController>{RightHand}/devicePosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Position
+      m_Flags: 8
+    - m_Name: third
+      m_Id: 3ef0a781-60c5-48bc-a584-f95553f8ae0a
+      m_Path: '<XRHandDevice>{RightHand}/devicePosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Position
+      m_Flags: 8
+    - m_Name:
+      m_Id: 6011e1e6-b2dd-4cb1-8da5-29b03868f2c5
+      m_Path: '<XRController>{RightHand}/*'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Haptic Device
+      m_Flags: 0
+    - m_Name:
+      m_Id: 03ccbaec-eeca-4fc4-8281-ee1758b4eb9b
+      m_Path: '<XRController>{RightHand}/trackingState'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Tracking State
+      m_Flags: 0
+    - m_Name:
+      m_Id: 714d1173-f908-4bca-951c-4adb4eb7b4c5
+      m_Path: '<XRHandDevice>{RightHand}/trackingState'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Tracking State
+      m_Flags: 0
+    - m_Name:
+      m_Id: dd822fc8-c655-4a4d-87d0-9575760b6dca
+      m_Path: '<MetaAimHand>{RightHand}/devicePosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: e60d7767-705f-4af2-ae42-f135e6580630
+      m_Path: '<HandInteraction>{RightHand}/pointer/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: d34dafcf-a3a4-4511-a73f-1ecbfd6099c8
+      m_Path: '<HandInteractionPoses>{RightHand}/pointer/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: 720d5e83-6877-4504-9b4a-aa550c2593af
+      m_Path: '<HoloLensHand>{RightHand}/pointer/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: 2bb1158a-2d78-446b-9351-6f9b3f1364cb
+      m_Path: '<MetaAimHand>{RightHand}/deviceRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Rotation
+      m_Flags: 0
+    - m_Name:
+      m_Id: 256fbef4-95a6-4127-ac3e-6a259b640666
+      m_Path: '<HandInteraction>{RightHand}/pointer/rotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Rotation
+      m_Flags: 0
+    - m_Name:
+      m_Id: d46291b9-775e-457b-a909-649a301d55c3
+      m_Path: '<HandInteractionPoses>{RightHand}/pointer/rotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Rotation
+      m_Flags: 0
+    - m_Name:
+      m_Id: 2fac2635-e015-4fb7-9578-34b85a5d5797
+      m_Path: '<HoloLensHand>{RightHand}/pointer/rotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Aim Rotation
+      m_Flags: 0
+    - m_Name: Vector 3 Fallback
+      m_Id: 0323576b-ec88-4459-a791-4afeada3f7c8
+      m_Path: Vector3Fallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Position
+      m_Flags: 4
+    - m_Name: first
+      m_Id: 0bdf98f1-d1a8-443f-805e-9718b34fc6ea
+      m_Path: '<XRHandDevice>{RightHand}/pinchPosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Position
+      m_Flags: 8
+    - m_Name: second
+      m_Id: 0bd62ec6-1259-40f6-aa0a-71b82a790764
+      m_Path: '<HandInteraction>{RightHand}/pinchPose/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Position
+      m_Flags: 8
+    - m_Name: third
+      m_Id: 7271c456-534a-4e51-9835-1ebd589a938e
+      m_Path: '<HandInteractionPoses>{RightHand}/pinchPose/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Position
+      m_Flags: 8
+    - m_Name: Vector 3 Fallback
+      m_Id: 5724159b-b0ee-4458-b567-63874ee6e24a
+      m_Path: Vector3Fallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Position
+      m_Flags: 4
+    - m_Name: first
+      m_Id: 3f5ff135-3cfa-48b6-a35c-aa52badc1d6e
+      m_Path: '<XRHandDevice>{RightHand}/pokePosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Position
+      m_Flags: 8
+    - m_Name: second
+      m_Id: c46e492c-1618-4d10-8c99-3079cf9deda6
+      m_Path: '<HandInteraction>{RightHand}/pokePose/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Position
+      m_Flags: 8
+    - m_Name: third
+      m_Id: 34b9f870-767e-422c-b558-0708567a1a5d
+      m_Path: '<HandInteractionPoses>{RightHand}/pokePose/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Position
+      m_Flags: 8
+    - m_Name: Quaternion Fallback
+      m_Id: 74a5f1ad-f8ed-42cf-aff3-eb911325ca7d
+      m_Path: QuaternionFallback
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Rotation
+      m_Flags: 4
+    - m_Name: first
+      m_Id: 595c1ccb-9c05-411a-a2fd-e892ca0c9091
+      m_Path: '<XRHandDevice>{RightHand}/pokeRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Rotation
+      m_Flags: 8
+    - m_Name: second
+      m_Id: d7ce6129-ec94-4757-9595-aaf1032cae86
+      m_Path: '<HandInteraction>{RightHand}/pokePose/rotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Rotation
+      m_Flags: 8
+    - m_Name: third
+      m_Id: 0e7b9607-caf5-46cc-adb9-2a1500c718a4
+      m_Path: '<HandInteractionPoses>{RightHand}/pokePose/rotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Poke Rotation
+      m_Flags: 8
+    - m_Name:
+      m_Id: 1de48aee-890b-4dbb-a02d-51df9bd39db7
+      m_Path: '<XRController>{RightHand}/isTracked'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Is Tracked
+      m_Flags: 0
+    - m_Name:
+      m_Id: 5a0c4fe0-639a-44e0-beeb-4e11e0dea7ef
+      m_Path: '<XRHandDevice>{RightHand}/isTracked'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Is Tracked
+      m_Flags: 0
+    - m_Name:
+      m_Id: 5469d4d1-9645-4397-a596-d74f876eafc2
+      m_Path: '<MetaAimHand>{RightHand}/aimFlags'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Meta Aim Flags
+      m_Flags: 0
+    - m_Name:
+      m_Id: efcaf94e-8faa-439e-983b-c65f79c3b743
+      m_Path: '<XRHandDevice>{RightHand}/gripPosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Grip Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: 70a747b6-46e8-4d3b-aaec-20bcab8f1dd7
+      m_Path: '<XRHandDevice>{RightHand}/gripRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Grip Rotation
+      m_Flags: 0
+    - m_Name:
+      m_Id: 709cc921-f3b0-4dc8-88d4-7787b8a3ced1
+      m_Path: '<XRController>{RightHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Thumbstick
+      m_Flags: 0
+  - m_Name: XRI Right Interaction
+    m_Id: 461bce25-7762-40c5-b639-f190649be6d6
+    m_Asset: {fileID: 11400000}
+    m_Actions:
+    - m_Name: Select
+      m_Type: 1
+      m_ExpectedControlType:
+      m_Id: ac96c10b-c955-4a46-8e67-bf16bc069b53
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: Select Value
+      m_Type: 0
+      m_ExpectedControlType: Axis
+      m_Id: 39bbf1ac-21a3-413d-90f6-6dbf6efeaabe
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Activate
+      m_Type: 1
+      m_ExpectedControlType: Button
+      m_Id: 41976d89-60de-4deb-bff9-16b4af96b290
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: Activate Value
+      m_Type: 0
+      m_ExpectedControlType: Axis
+      m_Id: c3ca6ed7-3d25-44a2-b1d8-5be4eb699370
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: UI Press
+      m_Type: 1
+      m_ExpectedControlType:
+      m_Id: 65174b45-c2ee-4f90-93bb-fb4084eaaab3
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: UI Press Value
+      m_Type: 0
+      m_ExpectedControlType: Axis
+      m_Id: 962ac033-ec42-4981-88a4-551ad9be6ecb
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: UI Scroll
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: c283b939-751f-426e-8462-142a529993e3
+      m_Processors: InvertVector2(invertY=false)
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Translate Manipulation
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 6f7cf253-7062-443b-b10f-2be48a33f027
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Rotate Manipulation
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 9b5d8312-f609-4895-b70f-81a722b2ae11
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Directional Manipulation
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: b950a329-6492-4e29-b563-afc726f81e95
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Scale Toggle
+      m_Type: 1
+      m_ExpectedControlType:
+      m_Id: 5ad73d15-99a4-4bce-a76f-f49815602416
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: Scale Over Time
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 19a21f59-bd21-4f77-b29d-4fda26ef6769
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    m_Bindings:
+    - m_Name:
+      m_Id: 1ce80054-410d-4112-a332-50faa7fb4f23
+      m_Path: '<XRController>{RightHand}/{GripButton}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select
+      m_Flags: 0
+    - m_Name:
+      m_Id: 1d5b47ea-64e3-4b99-b620-de6c360908be
+      m_Path: '<MetaAimHand>{RightHand}/indexPressed'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select
+      m_Flags: 0
+    - m_Name:
+      m_Id: 1fe3ab58-51f3-4274-995c-176ac72d9610
+      m_Path: '<HandInteraction>{RightHand}/graspFirm'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select
+      m_Flags: 0
+    - m_Name:
+      m_Id: f6083118-4e38-45a2-afaf-52fa60444f78
+      m_Path: '<HandInteraction>{RightHand}/pinchTouched'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select
+      m_Flags: 0
+    - m_Name:
+      m_Id: 82f232f1-6246-4d1e-aacc-a7ccc16c76d9
+      m_Path: '<HoloLensHand>{RightHand}/squeezePressed'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select
+      m_Flags: 0
+    - m_Name:
+      m_Id: dd433817-216c-46b9-8dd3-f3a4ea1767b9
+      m_Path: '<XRController>{RightHand}/{Grip}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: 770a07b5-a199-4342-b4a5-b3baafbe2bcb
+      m_Path: '<MetaAimHand>{RightHand}/pinchStrengthIndex'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: e8d22d4b-ac0c-452b-9f5e-247f94754302
+      m_Path: '<HandInteraction>{RightHand}/graspValue'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: c850e784-816f-4df7-8759-a725cb4a84bf
+      m_Path: '<HandInteraction>{RightHand}/pinchValue'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: e890a130-d436-4b52-a092-bff81d18bfb7
+      m_Path: '<HoloLensHand>{RightHand}/squeeze'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Select Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: fa59aed1-ae0b-4074-a58c-294b85f46228
+      m_Path: '<XRController>{RightHand}/{TriggerButton}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Activate
+      m_Flags: 0
+    - m_Name:
+      m_Id: 150f414f-61bf-47b1-b4f8-f772a2a40565
+      m_Path: '<XRController>{RightHand}/{Trigger}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Activate Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: 92bb5b8f-bf48-4dab-af05-50a865773895
+      m_Path: '<XRController>{RightHand}/{TriggerButton}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press
+      m_Flags: 0
+    - m_Name:
+      m_Id: 1652c26e-d835-461f-b46b-55b146fd9bba
+      m_Path: '<MetaAimHand>{RightHand}/indexPressed'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press
+      m_Flags: 0
+    - m_Name:
+      m_Id: 7ae41e93-9c2b-4d15-8387-0eddbc823053
+      m_Path: '<HandInteraction>{RightHand}/pointerActivated'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press
+      m_Flags: 0
+    - m_Name:
+      m_Id: f8a900c7-8116-4f44-9d24-8f19caf07108
+      m_Path: '<HoloLensHand>{RightHand}/selectPressed'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press
+      m_Flags: 0
+    - m_Name:
+      m_Id: 5b4ef08d-9ddd-4f0a-8539-d1114d14d143
+      m_Path: '<XRController>{RightHand}/{Trigger}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: 620cd3c3-a8c2-4a24-825a-ef6eb1cb41ef
+      m_Path: '<MetaAimHand>{RightHand}/pinchStrengthIndex'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: 4bfac4d7-1bce-4fa7-a6b1-00eb7e5f346e
+      m_Path: '<HandInteraction>{RightHand}/pointerActivateValue'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: e2fbf204-5031-483f-beaa-abf05113dbc7
+      m_Path: '<HoloLensHand>{RightHand}/select'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Press Value
+      m_Flags: 0
+    - m_Name:
+      m_Id: 5c0fa06c-b670-477f-a95d-eb3b4880e439
+      m_Path: '<XRController>{RightHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors: ScaleVector2(y=0),StickDeadzone
+      m_Groups:
+      m_Action: Rotate Manipulation
+      m_Flags: 0
+    - m_Name:
+      m_Id: af6fd279-2f48-4f51-8e9d-29b0b9d926f8
+      m_Path: '<XRController>{RightHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: UI Scroll
+      m_Flags: 0
+    - m_Name:
+      m_Id: d8258e49-f7cc-44d7-bc27-77c2161e2005
+      m_Path: '<XRController>{RightHand}/{Primary2DAxisClick}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Scale Toggle
+      m_Flags: 0
+    - m_Name:
+      m_Id: ef10c39a-2987-41bb-bb80-0e476240adaa
+      m_Path: '<XRController>{RightHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors: ScaleVector2(x=0),StickDeadzone
+      m_Groups:
+      m_Action: Scale Over Time
+      m_Flags: 0
+    - m_Name:
+      m_Id: c4b46d7d-8231-4672-83f9-75af565faf57
+      m_Path: '<XRController>{RightHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Directional Manipulation
+      m_Flags: 0
+    - m_Name:
+      m_Id: 4caf4e8d-13e5-4bd6-8f42-b6b99c315ad0
+      m_Path: '<XRController>{RightHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors: ScaleVector2(x=0),StickDeadzone
+      m_Groups:
+      m_Action: Translate Manipulation
+      m_Flags: 0
+  - m_Name: XRI Right Locomotion
+    m_Id: 99ce76d3-82c5-4289-9670-2ecffa6833fd
+    m_Asset: {fileID: 11400000}
+    m_Actions:
+    - m_Name: Teleport Mode
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: a6c7231d-c55d-4dd4-9e87-877bb5522ef5
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Teleport Mode Cancel
+      m_Type: 1
+      m_ExpectedControlType: Button
+      m_Id: d587b60c-39a0-4365-8075-477ce484ba0f
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: Turn
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 9fb2eb2b-2fb6-4328-8167-10a1bf11b424
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Snap Turn
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 44441ad6-5762-466d-ad54-aa44fcd61a5c
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Move
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 00a4dc9f-1ee6-4349-b0e9-72d5dccaadd6
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Grab Move
+      m_Type: 1
+      m_ExpectedControlType: Button
+      m_Id: cfb29d37-3db0-4e5d-a73b-7d48a19e279e
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    m_Bindings:
+    - m_Name:
+      m_Id: 62690862-4688-4010-975b-b3d9c6062157
+      m_Path: '<XRController>{RightHand}/{Primary2DAxis}'
+      m_Interactions: Sector(directions=1)
+      m_Processors:
+      m_Groups:
+      m_Action: Teleport Mode
+      m_Flags: 0
+    - m_Name:
+      m_Id: de466e6e-12bf-46a1-b0fd-ffbc343f3399
+      m_Path: '<XRController>{RightHand}/{GripButton}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Teleport Mode Cancel
+      m_Flags: 0
+    - m_Name:
+      m_Id: d6c08c3d-3d41-4695-994d-1ac9016a5a9e
+      m_Path: '<XRController>{RightHand}/{Primary2DAxis}'
+      m_Interactions: Sector(directions=12,sweepBehavior=1),Sector(directions=2,sweepBehavior=2)
+      m_Processors:
+      m_Groups:
+      m_Action: Turn
+      m_Flags: 0
+    - m_Name:
+      m_Id: 022046aa-be71-4288-859d-6dd42844f6e6
+      m_Path: '<XRController>{RightHand}/{Primary2DAxis}'
+      m_Interactions:
+      m_Processors: StickDeadzone
+      m_Groups:
+      m_Action: Move
+      m_Flags: 0
+    - m_Name:
+      m_Id: 7ecb549e-ab98-4a4b-b979-38068fe3b811
+      m_Path: '<XRController>{RightHand}/{GripButton}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Grab Move
+      m_Flags: 0
+    - m_Name:
+      m_Id: 31d838df-4d4e-4c16-a373-b9c07d9d2e2a
+      m_Path: '<XRController>{RightHand}/{Primary2DAxis}'
+      m_Interactions: Sector(directions=12,sweepBehavior=1),Sector(directions=2,sweepBehavior=2)
+      m_Processors:
+      m_Groups:
+      m_Action: Snap Turn
+      m_Flags: 0
+  - m_Name: XRI UI
+    m_Id: edd65a7c-601c-4915-8307-025a081d8790
+    m_Asset: {fileID: 11400000}
+    m_Actions:
+    - m_Name: Navigate
+      m_Type: 2
+      m_ExpectedControlType: Vector2
+      m_Id: c9a92aca-49d5-4910-8ade-8e994f0a31f0
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: Submit
+      m_Type: 1
+      m_ExpectedControlType: Button
+      m_Id: eba98c2e-6268-4233-bb88-946287bc753c
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: Cancel
+      m_Type: 1
+      m_ExpectedControlType: Button
+      m_Id: 448b396b-0885-4543-ac5a-8b3405da6791
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: Point
+      m_Type: 2
+      m_ExpectedControlType: Vector2
+      m_Id: 682022c0-857a-4332-8753-7f8fcdf84d37
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Click
+      m_Type: 2
+      m_ExpectedControlType: Button
+      m_Id: b194cd98-7e4f-457a-a60c-cebc25dc32a2
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: ScrollWheel
+      m_Type: 2
+      m_ExpectedControlType: Vector2
+      m_Id: bd7fc534-75e3-489d-94fb-3d45cb78d8f3
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: MiddleClick
+      m_Type: 2
+      m_ExpectedControlType: Button
+      m_Id: cc5f5666-a75c-4dfc-8566-ded8ec9b4ae3
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    - m_Name: RightClick
+      m_Type: 2
+      m_ExpectedControlType: Button
+      m_Id: 533aeb95-18b2-4a83-a69d-f6e0be72ff8a
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    m_Bindings:
+    - m_Name:
+      m_Id: e87fa299-8441-4620-89dd-0564c7d552e2
+      m_Path: '<Mouse>/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Point
+      m_Flags: 0
+    - m_Name:
+      m_Id: 445a013e-9c17-48a2-9856-067e4826df03
+      m_Path: '<Pen>/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Point
+      m_Flags: 0
+    - m_Name:
+      m_Id: 05c1e38e-79dd-41cb-95d5-74f42e65d92f
+      m_Path: '<Touchscreen>/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Point
+      m_Flags: 0
+    - m_Name:
+      m_Id: 57909bb4-1088-4975-9227-ecc87a305257
+      m_Path: '<Mouse>/leftButton'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Click
+      m_Flags: 0
+    - m_Name:
+      m_Id: 2740386d-d4b6-4342-903c-d9390783f04a
+      m_Path: '<Pen>/tip'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Click
+      m_Flags: 0
+    - m_Name:
+      m_Id: d6fd3bb5-c747-4eba-b599-1c6d7c738e2a
+      m_Path: '<Mouse>/scroll'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: ScrollWheel
+      m_Flags: 0
+    - m_Name:
+      m_Id: fb2286cc-fa20-4564-bff6-9f790f12cf6b
+      m_Path: '<Mouse>/middleButton'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: MiddleClick
+      m_Flags: 0
+    - m_Name:
+      m_Id: 54eb7da2-546a-4d75-bfcc-ae38be303a59
+      m_Path: '<Mouse>/rightButton'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: RightClick
+      m_Flags: 0
+    - m_Name: Gamepad
+      m_Id: 4c9a5170-d325-45ee-8ef9-fc12d1f5a97e
+      m_Path: 2DVector
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 4
+    - m_Name: up
+      m_Id: c846c708-b27e-4ac9-9a83-c80ac5c263d5
+      m_Path: '<Gamepad>/leftStick/up'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: up
+      m_Id: caf2fb01-3e95-47c1-8663-315057149d48
+      m_Path: '<Gamepad>/rightStick/up'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: down
+      m_Id: 830d65e9-887d-45b4-8386-562deb29e465
+      m_Path: '<Gamepad>/leftStick/down'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: down
+      m_Id: e5c71442-9909-46d8-aa56-8fa3574a8227
+      m_Path: '<Gamepad>/rightStick/down'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: left
+      m_Id: 210246e8-c3c4-4edc-be9c-1916858346df
+      m_Path: '<Gamepad>/leftStick/left'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: left
+      m_Id: fb701ef0-9910-4639-80d1-2c1c03f871ed
+      m_Path: '<Gamepad>/rightStick/left'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: right
+      m_Id: 3de9f409-fb44-4311-8705-b4f4e7cd3029
+      m_Path: '<Gamepad>/leftStick/right'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: right
+      m_Id: bd001ba1-d6a2-4a97-9c87-36b5b92728af
+      m_Path: '<Gamepad>/rightStick/right'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name:
+      m_Id: fcc0a2cd-a126-43ad-bb1e-ffc1ae7668c7
+      m_Path: '<Gamepad>/dpad'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 0
+    - m_Name: Joystick
+      m_Id: 65cbb13a-6e00-4973-9887-e49e06575091
+      m_Path: 2DVector
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 4
+    - m_Name: up
+      m_Id: 3c5803e2-42d0-4d48-bbd6-41ce4442df0b
+      m_Path: '<Joystick>/stick/up'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: down
+      m_Id: d5b1219c-0df6-4bc5-ad11-205b748cade4
+      m_Path: '<Joystick>/stick/down'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: left
+      m_Id: 065d2394-f10a-46df-b6cb-2c56a6c842ea
+      m_Path: '<Joystick>/stick/left'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: right
+      m_Id: 29921809-7785-44a1-a316-e96307174552
+      m_Path: '<Joystick>/stick/right'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: Keyboard
+      m_Id: 49817cc8-fecc-406d-a187-6393de317e95
+      m_Path: 2DVector
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 4
+    - m_Name: up
+      m_Id: ef33431d-17d0-4e1c-90f2-bbaa2ef9a8b7
+      m_Path: '<Keyboard>/w'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: up
+      m_Id: 5ddfdce2-0f11-4f4e-8931-0ae6fb289ac7
+      m_Path: '<Keyboard>/upArrow'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: down
+      m_Id: 5ceab4e0-1600-4bfb-acf6-8d02c4e10aea
+      m_Path: '<Keyboard>/s'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: down
+      m_Id: 94e10d8b-5bfa-439d-afae-b975efac2b7b
+      m_Path: '<Keyboard>/downArrow'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: left
+      m_Id: 9fc7d14a-385d-4ca5-b185-906e049b7eed
+      m_Path: '<Keyboard>/a'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: left
+      m_Id: d7e5e0c4-05dc-4f2f-8649-a66fe843caed
+      m_Path: '<Keyboard>/leftArrow'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: right
+      m_Id: 76ab9656-e168-4b2c-9a6b-d8d6da981e4f
+      m_Path: '<Keyboard>/d'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name: right
+      m_Id: ad7bc5b3-6ada-42a2-9cba-5c7334cba7be
+      m_Path: '<Keyboard>/rightArrow'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Navigate
+      m_Flags: 8
+    - m_Name:
+      m_Id: 9f2a7c29-a588-4b6a-a966-955eb408c526
+      m_Path: '*/{Submit}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Submit
+      m_Flags: 0
+    - m_Name:
+      m_Id: 67f51768-1493-4444-b118-82d398a16fdd
+      m_Path: '*/{Cancel}'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Cancel
+      m_Flags: 0
+    - m_Name:
+      m_Id: 198e6869-709e-448d-96d4-27186c9d56e6
+      m_Path: '<Touchscreen>/Press'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Click
+      m_Flags: 0
+  - m_Name: Touchscreen Gestures
+    m_Id: 6fb00339-a75a-4e5b-94e0-839f979f2a8a
+    m_Asset: {fileID: 11400000}
+    m_Actions:
+    - m_Name: Tap Start Position
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 0f53f821-ec5d-472c-bd12-fb5ce515ae59
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Drag Current Position
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 07fd51be-2a34-4531-939c-ff750fcf8e4d
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Drag Delta
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: ccd1d49f-8e5b-4c66-8d2c-fb774934270b
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Pinch Start Position
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: 07f4446a-0f0c-4176-a67e-75be05a3be3c
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Pinch Gap
+      m_Type: 0
+      m_ExpectedControlType: Axis
+      m_Id: c299ab55-2420-4eb1-a459-0af3846471b9
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Pinch Gap Delta
+      m_Type: 0
+      m_ExpectedControlType: Axis
+      m_Id: d1d816b2-4bec-4393-bf83-a59146ee0abc
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Twist Start Position
+      m_Type: 0
+      m_ExpectedControlType: Vector2
+      m_Id: e476e037-f414-4b6d-ac4a-486d7228ec43
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Twist Delta Rotation
+      m_Type: 0
+      m_ExpectedControlType: Axis
+      m_Id: 5910a9c0-4a90-4a2c-92cb-e33054cfd463
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Screen Touch Count
+      m_Type: 0
+      m_ExpectedControlType: Integer
+      m_Id: c1e4b6b1-d82a-485c-9d29-9d42e48df255
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 1
+    - m_Name: Spawn Object
+      m_Type: 1
+      m_ExpectedControlType: Button
+      m_Id: 1415f3c5-fc5f-4f58-a044-4a69560151f2
+      m_Processors:
+      m_Interactions:
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    m_Bindings:
+    - m_Name:
+      m_Id: fea81b99-07f5-426a-beba-5e0832c14855
+      m_Path: '<TouchscreenGestureInputController>/tapStartPosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Tap Start Position
+      m_Flags: 0
+    - m_Name: One Modifier
+      m_Id: ccaca70d-b804-4cda-9dd1-ee9152fa6ec8
+      m_Path: OneModifier
+      m_Interactions: Tap
+      m_Processors:
+      m_Groups:
+      m_Action: Tap Start Position
+      m_Flags: 4
+    - m_Name: modifier
+      m_Id: 30c845d9-0972-4e51-92bf-2eee8171abc7
+      m_Path: '<Mouse>/press'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Tap Start Position
+      m_Flags: 8
+    - m_Name: binding
+      m_Id: 9ab23efd-1004-4423-b9b9-b070db6cde4e
+      m_Path: '<Mouse>/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Tap Start Position
+      m_Flags: 8
+    - m_Name:
+      m_Id: eb175a82-fad6-4249-bc9f-a6c9acee4436
+      m_Path: '<TouchscreenGestureInputController>/dragCurrentPosition'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Drag Current Position
+      m_Flags: 0
+    - m_Name: One Modifier
+      m_Id: 2648faca-8c9b-4bcd-9653-fc9cfa39dbe3
+      m_Path: OneModifier
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Drag Current Position
+      m_Flags: 4
+    - m_Name: modifier
+      m_Id: 1f42a89b-32be-49d7-8153-507ff950cb3b
+      m_Path: '<Mouse>/press'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Drag Current Position
+      m_Flags: 8
+    - m_Name: binding
+      m_Id: 7e88eed9-d5b6-4c3a-9dd7-ac83c45fced3
+      m_Path: '<Mouse>/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Drag Current Position
+      m_Flags: 8
+    - m_Name:
+      m_Id: 40fc89b1-2773-4288-b02f-892fea9b7d48
+      m_Path: '<TouchscreenGestureInputController>/twistDeltaRotation'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Twist Delta Rotation
+      m_Flags: 0
+    - m_Name: 1D Axis
+      m_Id: 57cc64a3-de05-45d9-971f-764c0aa9efe5
+      m_Path: 1DAxis
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Twist Delta Rotation
+      m_Flags: 4
+    - m_Name: negative
+      m_Id: 475bf595-e1da-44b6-8674-677260bd2dcf
+      m_Path: '<Keyboard>/r'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Twist Delta Rotation
+      m_Flags: 8
+    - m_Name: positive
+      m_Id: 05a801e2-b5df-4253-b3a9-ad2213853f57
+      m_Path: '<Keyboard>/e'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Twist Delta Rotation
+      m_Flags: 8
+    - m_Name:
+      m_Id: d919e652-0e4a-4f12-a1f9-b18cead206e2
+      m_Path: '<TouchscreenGestureInputController>/fingerCount'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Screen Touch Count
+      m_Flags: 0
+    - m_Name:
+      m_Id: 044d4cc1-3ad7-4d38-a95f-994badd7e1a3
+      m_Path: '<TouchscreenGestureInputController>/dragDelta'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Drag Delta
+      m_Flags: 0
+    - m_Name:
+      m_Id: 9e3b31e7-2f82-40f3-bfe1-ad0fa7f035d4
+      m_Path: '<TouchscreenGestureInputController>/pinchStartPosition1'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Start Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: f3092672-a026-446d-8bb6-44843db135b1
+      m_Path: '<TouchscreenGestureInputController>/pinchGapDelta'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Gap Delta
+      m_Flags: 0
+    - m_Name:
+      m_Id: 6926b069-b36d-40c2-8325-797a8deb9038
+      m_Path: '<Mouse>/scroll/y'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Gap Delta
+      m_Flags: 0
+    - m_Name: 1D Axis
+      m_Id: da16ab02-4e2b-46f5-a969-c780423ac0e9
+      m_Path: 1DAxis
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Gap Delta
+      m_Flags: 4
+    - m_Name: negative
+      m_Id: 07794ffe-429a-49c7-93c1-83c4af6695f4
+      m_Path: '<Keyboard>/z'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Gap Delta
+      m_Flags: 8
+    - m_Name: positive
+      m_Id: c480645b-97d7-4c34-8797-7f9a24edb3c5
+      m_Path: '<Keyboard>/x'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Gap Delta
+      m_Flags: 8
+    - m_Name:
+      m_Id: 0f8550ed-7261-48e0-aa0e-6670f29141f5
+      m_Path: '<TouchscreenGestureInputController>/twistStartPosition1'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Twist Start Position
+      m_Flags: 0
+    - m_Name:
+      m_Id: 4f94c62c-7c6d-4547-82fe-b6ed10da8388
+      m_Path: '<TouchscreenGestureInputController>/pinchGap'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Pinch Gap
+      m_Flags: 0
+    - m_Name:
+      m_Id: f0f27c2a-eef2-418a-986a-811bf690fd89
+      m_Path: '<Touchscreen>/Press'
+      m_Interactions: Tap
+      m_Processors:
+      m_Groups:
+      m_Action: Spawn Object
+      m_Flags: 0
+    - m_Name: One Modifier
+      m_Id: 6f6c3123-8e3c-4f69-9ecc-2a605a5f8777
+      m_Path: OneModifier
+      m_Interactions: Tap
+      m_Processors:
+      m_Groups:
+      m_Action: Spawn Object
+      m_Flags: 4
+    - m_Name: modifier
+      m_Id: ab34c73d-e0f0-4cf2-962e-2c201f9c5714
+      m_Path: '<Mouse>/press'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Spawn Object
+      m_Flags: 8
+    - m_Name: binding
+      m_Id: 38c38fe4-fefa-4a01-a80a-6185ecb009cb
+      m_Path: '<Mouse>/position'
+      m_Interactions:
+      m_Processors:
+      m_Groups:
+      m_Action: Spawn Object
+      m_Flags: 8
+  m_ControlSchemes: []
+  m_IsProjectWide: 0
