@@ -13,6 +13,36 @@ public class CustomGrabInteractable : XRGrabInteractable
 
 	private bool aimSelecting;
 
+	// Hand tracking: pose of the object in the hand (see HandHoldPose). It must run AFTER XRI's default transformer,
+	// which keeps computing the pose for controllers; this one only overrides it for a tracked hand.
+	private HandHoldPose handHoldPose;
+
+	// XRI calls this (once, on the first Dynamic update) when no grab transformer is registered yet.
+	protected override void AddDefaultSingleGrabTransformer()
+	{
+		base.AddDefaultSingleGrabTransformer();
+		AddHandHoldPose();
+	}
+
+	private void AddHandHoldPose()
+	{
+		if (handHoldPose == null)
+		{
+			handHoldPose = new HandHoldPose();
+			AddSingleGrabTransformer(handHoldPose);
+		}
+	}
+
+	protected override void OnSelectEntering(SelectEnterEventArgs args)
+	{
+		// Only if some other transformer got registered first (so XRI never called AddDefaultSingleGrabTransformer).
+		if (handHoldPose == null && singleGrabTransformersCount > 0)
+		{
+			AddHandHoldPose();
+		}
+		base.OnSelectEntering(args);
+	}
+
 	protected override void OnSelectEntered(SelectEnterEventArgs args)
 	{
 		base.OnSelectEntered(args);

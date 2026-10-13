@@ -79,6 +79,7 @@ public class HandCloseGrab : MonoBehaviour, IXRInputButtonReader
 	{
 		handSubsystem = null;
 		subsystems.Clear();
+		trackingSpace = null;
 	}
 
 	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -394,6 +395,65 @@ public class HandCloseGrab : MonoBehaviour, IXRInputButtonReader
 		}
 		hand = isLeft ? handSubsystem.leftHand : handSubsystem.rightHand;
 		return true;
+	}
+
+	// ---------------------------------------------------------------- palm joints in world space (used by HandHoldPose)
+
+	private static Transform trackingSpace;
+
+	public bool IsLeft
+	{
+		get { return isLeft; }
+	}
+
+	/// <summary>
+	/// World positions of the wrist and of the index / middle / little knuckles (proximal joints). False when the hand
+	/// is not tracked. XR Hands reports joints in tracking space (the XR Origin's camera offset), hence the conversion.
+	/// </summary>
+	public bool TryGetPalmJoints(out Vector3 wrist, out Vector3 index, out Vector3 middle, out Vector3 little)
+	{
+		wrist = index = middle = little = Vector3.zero;
+		XRHand hand;
+		if (!TryGetHand(out hand) || !hand.isTracked)
+		{
+			return false;
+		}
+		Pose w, i, m, l;
+		if (!hand.GetJoint(XRHandJointID.Wrist).TryGetPose(out w) ||
+			!hand.GetJoint(XRHandJointID.IndexProximal).TryGetPose(out i) ||
+			!hand.GetJoint(XRHandJointID.MiddleProximal).TryGetPose(out m) ||
+			!hand.GetJoint(XRHandJointID.LittleProximal).TryGetPose(out l))
+		{
+			return false;
+		}
+		Transform space = GetTrackingSpace();
+		if (space == null)
+		{
+			return false;
+		}
+		wrist = space.TransformPoint(w.position);
+		index = space.TransformPoint(i.position);
+		middle = space.TransformPoint(m.position);
+		little = space.TransformPoint(l.position);
+		return true;
+	}
+
+	private static Transform GetTrackingSpace()
+	{
+		if (trackingSpace != null)
+		{
+			return trackingSpace;
+		}
+		Unity.XR.CoreUtils.XROrigin origin = Object.FindFirstObjectByType<Unity.XR.CoreUtils.XROrigin>();
+		if (origin != null)
+		{
+			trackingSpace = origin.CameraFloorOffsetObject != null ? origin.CameraFloorOffsetObject.transform : origin.transform;
+		}
+		else if (Camera.main != null)
+		{
+			trackingSpace = Camera.main.transform.parent;
+		}
+		return trackingSpace;
 	}
 
 	// ---------------------------------------------------------------- taking the pointed object on a closing gesture
