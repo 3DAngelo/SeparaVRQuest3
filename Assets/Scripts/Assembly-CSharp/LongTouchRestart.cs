@@ -1,4 +1,6 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class LongTouchRestart : MonoBehaviour
 {
@@ -6,13 +8,18 @@ public class LongTouchRestart : MonoBehaviour
 
 	private float elapsed;
 
-	private void Start()
+	// Debug only: disabled outside the editor.
+	private void Awake()
 	{
+		if (!Application.isEditor)
+		{
+			enabled = false;
+		}
 	}
 
 	private void Update()
 	{
-		if (Input.GetMouseButton(0))
+		if (Pointer.current != null && Pointer.current.press.isPressed)
 		{
 			if (!touching)
 			{
@@ -24,7 +31,8 @@ public class LongTouchRestart : MonoBehaviour
 				elapsed += Time.deltaTime;
 				if (elapsed >= 1.5f)
 				{
-					GetComponent<RestartGame>().Restart();
+					// Loads the intro directly so this no longer needs a RestartGame (whose Start restarts the game on a timer).
+					SceneManager.LoadScene(0);
 				}
 			}
 		}
