@@ -38,6 +38,12 @@ public class AbreContainer : MonoBehaviour
 
 	private void OnOut()
 	{
+		Close();
+	}
+
+	// Open / Close are also called by GameManager.ArrojarResiduos: open while a dumped object flies in.
+	public void Close()
+	{
 		if (isOpen)
 		{
 			if (GetComponent<Animation>().isPlaying && !isQueued)
@@ -56,7 +62,7 @@ public class AbreContainer : MonoBehaviour
 		}
 	}
 
-	private void Open()
+	public void Open()
 	{
 		if (!isOpen)
 		{

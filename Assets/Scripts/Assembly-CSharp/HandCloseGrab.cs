@@ -16,6 +16,10 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 ///
 /// How it plugs in: it installs itself as the <c>bypass</c> of the interactor's select input. The interactor then
 /// asks this component "is select held?", and the answer is "pinch (the original input) OR a closing gesture".
+///
+/// Once grabbed, the object is held until the hand is really open (thumb and index tips apart, and the grabbing
+/// fingers open) for a short moment. Turning the palm to the face (the Meta system gesture then suppresses the pinch
+/// input) or a hand tracking dropout therefore never drops it.
 /// </summary>
 [DisallowMultipleComponent]
 public class HandCloseGrab : MonoBehaviour, IXRInputButtonReader
@@ -24,11 +28,13 @@ public class HandCloseGrab : MonoBehaviour, IXRInputButtonReader
 	// About 1.0 with the finger straight, about 0.4 in a fist. Two thresholds = hysteresis against jitter.
 	public const float CloseRatio = 0.70f;      // below this a finger becomes "closed"
 	public const float OpenRatio = 0.82f;       // above this a closed finger becomes "open" again
-	public const float ReleaseDelay = 0.12f;    // seconds every grabbing finger must stay open before the object is released
+	public const float ReleaseDelay = 0.15f;    // seconds the hand must look open (no pinch, grabbing fingers open) before the object is released
+	public const float PinchCloseDist = 0.030f; // thumb tip - index tip distance (m) below which the joints count as "pinched"
+	public const float PinchOpenDist = 0.050f;  // thumb tip - index tip distance (m) above which a joint pinch counts as "open" again
 	public const float GrabWindow = 0.40f;      // seconds after a closing gesture during which a target may still be taken
 	public const float LatchTime = 0.40f;       // seconds the last pointed object stays grabbable after the ray left it
 	public const float GestureMemory = 0.60f;   // fingers closed within this time before a grab count as "the grab gesture"
-	public const float TrackingGrace = 0.50f;   // seconds of lost hand tracking tolerated before the grab is released
+	public const float TrackingGrace = 0.50f;   // seconds of lost hand tracking before the finger state is forgotten (a held object stays held)
 	public const float AimFrozenTime = 0.25f;   // aim pose not moving for this long (hand tracked) = aim pose not being updated
 
 	private static readonly XRHandJointID[][] Fingers =
@@ -49,17 +55,19 @@ public class HandCloseGrab : MonoBehaviour, IXRInputButtonReader
 	private readonly bool[] grabbing = new bool[4];   // fingers that take part in the current grab
 	private readonly float[] closeTime = new float[4];
 	private bool fingersKnown;
+	private bool jointPinch;                         // thumb-index pinch measured from the joints (not suppressed by system gestures)
+	private bool trackedThisFrame;                   // the hand joints were read this frame
 	private float lastTrackedTime = -999f;
 
 	private bool hadSelection;
-	private float lastGrabbingTime = -999f;
+	private float releaseSince = -1f;                // time the held hand started to look open; -1 = it does not
 	private float pendingUntil = -999f;
 	private XRGrabInteractable lastTarget;
 	private float lastTargetTime = -999f;
 
 	private int tickFrame = -1;
 	private bool inTick;
-	private bool curlHeld;
+	private bool selectLatched;                      // a selection is held until a confirmed release
 	private bool held;
 	private bool performedThisFrame;
 	private bool completedThisFrame;
@@ -148,6 +156,56 @@ public class HandCloseGrab : MonoBehaviour, IXRInputButtonReader
 		}
 		ResetState();
 		interactor.selectInput.bypass = this;
+		HookSystemGesture();
+	}
+
+	// The XRI hands rig's MetaSystemGestureDetector (palm turned to the face) calls SetActive(false) on this Near-Far
+	// Interactor, which cancels its selection and drops the held object. Those persistent calls are switched off and
+	// replaced by ones that hide the interactor only when nothing is held. Found by type name: the detector lives in
+	// the XRI sample assembly.
+	private bool gestureHooked;
+
+	private void HookSystemGesture()
+	{
+		if (gestureHooked)
+		{
+			return;
+		}
+		gestureHooked = true;
+		GameObject self = gameObject;
+		for (Transform t = transform.parent; t != null; t = t.parent)
+		{
+			foreach (MonoBehaviour behaviour in t.GetComponents<MonoBehaviour>())
+			{
+				if (behaviour == null || behaviour.GetType().Name != "MetaSystemGestureDetector")
+				{
+					continue;
+				}
+				UnityEngine.Events.UnityEvent started = behaviour.GetType().GetProperty("systemGestureStarted")?.GetValue(behaviour) as UnityEngine.Events.UnityEvent;
+				UnityEngine.Events.UnityEvent ended = behaviour.GetType().GetProperty("systemGestureEnded")?.GetValue(behaviour) as UnityEngine.Events.UnityEvent;
+				if (started == null || ended == null)
+				{
+					continue;
+				}
+				bool targetsSelf = false;
+				foreach (UnityEngine.Events.UnityEvent ev in new[] { started, ended })
+				{
+					for (int i = 0; i < ev.GetPersistentEventCount(); i++)
+					{
+						if (ev.GetPersistentTarget(i) == self)
+						{
+							ev.SetPersistentListenerState(i, UnityEngine.Events.UnityEventCallState.Off);
+							targetsSelf = true;
+						}
+					}
+				}
+				if (targetsSelf)
+				{
+					started.AddListener(() => { if (interactor == null || !interactor.hasSelection) self.SetActive(false); });
+					ended.AddListener(() => self.SetActive(true));
+				}
+			}
+		}
 	}
 
 	private void OnDisable()
@@ -180,12 +238,14 @@ public class HandCloseGrab : MonoBehaviour, IXRInputButtonReader
 			closeTime[i] = -999f;
 		}
 		fingersKnown = false;
+		jointPinch = false;
+		trackedThisFrame = false;
 		hadSelection = false;
-		lastGrabbingTime = -999f;
+		releaseSince = -1f;
 		pendingUntil = -999f;
 		lastTarget = null;
 		lastTargetTime = -999f;
-		curlHeld = false;
+		selectLatched = false;
 		held = false;
 		performedThisFrame = false;
 		completedThisFrame = false;
@@ -254,6 +314,8 @@ public class HandCloseGrab : MonoBehaviour, IXRInputButtonReader
 				{
 					grabbing[i] = closed[i] && now - closeTime[i] <= GestureMemory;
 				}
+				selectLatched = true;
+				releaseSince = -1f;
 			}
 			for (int i = 0; i < 4; i++)
 			{
@@ -269,7 +331,8 @@ public class HandCloseGrab : MonoBehaviour, IXRInputButtonReader
 			{
 				grabbing[i] = false;
 			}
-			lastGrabbingTime = -999f;
+			selectLatched = false;
+			releaseSince = -1f;
 			if (risen != 0)
 			{
 				pendingUntil = now + GrabWindow;   // a closing gesture: Update() takes the pointed object, if there is one
@@ -277,41 +340,66 @@ public class HandCloseGrab : MonoBehaviour, IXRInputButtonReader
 		}
 		hadSelection = hasSelection;
 
-		bool anyGrabbing = false;
-		for (int i = 0; i < 4; i++)
+		if (hasSelection && selectLatched)
 		{
-			if (grabbing[i] && closed[i])
+			// The hand "looks open" only when everything says so on a tracked frame: no pinch input, no joint pinch,
+			// no grabbing finger closed. Anything else (an untracked frame included) restarts the release timer.
+			bool anyGrabbing = false;
+			for (int i = 0; i < 4; i++)
 			{
-				anyGrabbing = true;
+				if (grabbing[i] && closed[i])
+				{
+					anyGrabbing = true;
+				}
+			}
+			bool looksOpen = trackedThisFrame && !pinch && !jointPinch && !anyGrabbing;
+			if (!looksOpen)
+			{
+				releaseSince = -1f;
+			}
+			else if (releaseSince < 0f)
+			{
+				releaseSince = now;
+			}
+			else if (now - releaseSince >= ReleaseDelay)
+			{
+				selectLatched = false;   // confirmed release
+				releaseSince = -1f;
 			}
 		}
-		if (anyGrabbing)
-		{
-			lastGrabbingTime = now;
-		}
-		curlHeld = hasSelection && now - lastGrabbingTime < ReleaseDelay;
+		bool latchHeld = hasSelection && selectLatched;
 
 		bool wasHeld = held;
-		held = pinch || curlHeld;
+		held = pinch || latchHeld;
 		performedThisFrame = held && !wasHeld;
 		// Second term: a selection with nothing holding it any more must still end (the interactor waits for this edge).
 		completedThisFrame = (!held && wasHeld) || (!held && hasSelection);
-		value = Mathf.Max(pinchValue, curlHeld ? 1f : 0f);
+		value = Mathf.Max(pinchValue, latchHeld ? 1f : 0f);
 		inTick = false;
 	}
 
 	/// <summary>Updates the open/closed state of the four fingers. Returns a bit mask of the fingers that closed this frame.</summary>
 	private int UpdateFingers(float now)
 	{
+		trackedThisFrame = false;
 		XRHand hand;
 		if (!TryGetHand(out hand) || !hand.isTracked)
 		{
 			if (now - lastTrackedTime > TrackingGrace)
 			{
+				// While holding, the grabbing fingers are kept: only a confirmed open hand (see Tick) releases the object.
+				bool holding = interactor.hasSelection;
 				for (int i = 0; i < 4; i++)
 				{
 					closed[i] = false;
-					grabbing[i] = false;
+					if (!holding)
+					{
+						grabbing[i] = false;
+					}
+				}
+				if (!holding)
+				{
+					jointPinch = false;
 				}
 				fingersKnown = false;   // when tracking comes back, the pose found is taken as is (it is not a "closing gesture")
 			}
@@ -319,11 +407,21 @@ public class HandCloseGrab : MonoBehaviour, IXRInputButtonReader
 		}
 		lastTrackedTime = now;
 
+		// Joint pinch (thumb tip - index tip, both in tracking space). Keeps its last value if a pose is missing.
+		Pose thumbTip, indexTip;
+		if (hand.GetJoint(XRHandJointID.ThumbTip).TryGetPose(out thumbTip) &&
+			hand.GetJoint(XRHandJointID.IndexTip).TryGetPose(out indexTip))
+		{
+			float pinchDist = Vector3.Distance(thumbTip.position, indexTip.position);
+			jointPinch = jointPinch ? pinchDist < PinchOpenDist : pinchDist < PinchCloseDist;
+		}
+
 		Pose wrist;
 		if (!hand.GetJoint(XRHandJointID.Wrist).TryGetPose(out wrist))
 		{
 			return 0;
 		}
+		trackedThisFrame = true;
 		int risen = 0;
 		for (int i = 0; i < 4; i++)
 		{
@@ -535,7 +633,8 @@ public class HandCloseGrab : MonoBehaviour, IXRInputButtonReader
 			{
 				grabbing[i] = closed[i] && now - closeTime[i] <= GestureMemory;
 			}
-			lastGrabbingTime = now;
+			selectLatched = true;   // held from now on until a confirmed release
+			releaseSince = -1f;
 			hadSelection = true;
 		}
 	}

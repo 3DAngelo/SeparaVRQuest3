@@ -144,6 +144,20 @@ public class GameManager : MonoBehaviour
 		Transform residuo = residuoLevantado.transform;
 		residuo.SetParent(null, true);
 		residuoLevantado = null;
+		// The flight is driven by hand: no physics, so neither the release (throw) velocity nor the container's colliders
+		// can push it again once it arrives.
+		Rigidbody body = residuo.GetComponent<Rigidbody>();
+		body.isKinematic = true;
+		foreach (Collider residuoCollider in residuo.GetComponentsInChildren<Collider>())
+		{
+			residuoCollider.enabled = false;
+		}
+		// The lid (if the container has one) opens while the object flies in, and closes once it has disappeared.
+		AbreContainer lid = container.GetComponent<AbreContainer>();
+		if (lid != null)
+		{
+			lid.Open();
+		}
 		Vector3 startPosition = residuo.position;
 		Vector3 endPosition = container.arrojarAqui.position;
 		float elapsed = 0f;
@@ -157,9 +171,16 @@ public class GameManager : MonoBehaviour
 			yield return new WaitForFixedUpdate();
 		}
 		CheckEvolve();
-		residuo.GetComponent<Rigidbody>().isKinematic = false;
+		// Then it just drops into the container (straight down, no collisions) and disappears.
+		body.isKinematic = false;
+		body.linearVelocity = Vector3.zero;
+		body.angularVelocity = Vector3.zero;
 		yield return new WaitForSeconds(0.5f);
 		Destroy(residuo.gameObject);
+		if (lid != null)
+		{
+			lid.Close();
+		}
 		if (score == totalResiduos)
 		{
 			descResiduo.text = msjWin;

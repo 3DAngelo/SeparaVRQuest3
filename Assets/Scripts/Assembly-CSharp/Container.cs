@@ -23,7 +23,7 @@ public class Container : XRBaseInteractable
 
 	private MeshRenderer _renderer;
 
-	private Component[] childrenRenderers;
+	private MeshRenderer[] childrenRenderers;
 
 	public Material defaultMaterial;
 
@@ -39,41 +39,32 @@ public class Container : XRBaseInteractable
 	// Once chosen, a container stays chosen up to this angle (hysteresis, so it does not flicker at the edge).
 	public const float AimKeepDeg = 33f;
 
-	// ---- Highlight look (the container a release would use, or the hovered one) ----
+	// ---- Highlight look (the container a release would use, only while an object is held) ----
+	// The container keeps its own look (a private copy of defaultMaterial) with a soft pulse: its base colour is only
+	// gently lerped toward the outline colour and a little emission of that colour is added. Plus a pulsing outline.
 
 	// Soft pulse, cycles per second.
-	public const float PulseHz = 0.9f;
-	// Brightness of the highlight material's base colour: multiplier at the bottom / top of the pulse.
-	public const float PulseMinBrightness = 1.0f;
-	public const float PulseMaxBrightness = 1.5f;
+	public const float PulseHz = HighlightPulse.PulseHz;
+	// Fraction of the way the base colour moves toward the outline colour at the bottom / top of the pulse (0 = no tint).
+	public const float PulseMinTint = 0.05f;
+	public const float PulseMaxTint = 0.12f;
 	// Emission added on top, as a fraction of the outline colour, at the bottom / top of the pulse.
-	public const float PulseMinEmission = 0.10f;
-	public const float PulseMaxEmission = 0.45f;
-	// Outline thickness as a fraction of the view height (0.012 is roughly 10 pixels per eye on a Quest 3).
-	public const float OutlineWidth = 0.012f;
+	public const float PulseMinEmission = 0.03f;
+	public const float PulseMaxEmission = 0.12f;
+	// Outline thickness in world units (metres), constant at any distance.
+	public const float OutlineWidth = HighlightPulse.OutlineWidth;
 	// The outline breathes a little too: width and brightness factors at the bottom of the pulse (top = 1).
-	public const float OutlineMinWidthFactor = 0.75f;
-	public const float OutlineMinBrightness = 0.8f;
+	public const float OutlineMinWidthFactor = HighlightPulse.OutlineMinWidthFactor;
+	public const float OutlineMinBrightness = HighlightPulse.OutlineMinBrightness;
 	public static readonly Color OutlineOrange = new Color(1f, 0.45f, 0f, 1f);
 	public static readonly Color OutlineGreen = new Color(0.1f, 1f, 0.2f, 1f);
 	// Assets/Resources/ContainerOutline.shader
-	public const string OutlineShaderResource = "ContainerOutline";
-
-	private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
-	private static readonly int ColorId = Shader.PropertyToID("_Color");
-	private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
-	private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
-	private static readonly int OutlineCenterId = Shader.PropertyToID("_OutlineCenter");
-	private static readonly int OutlineWidthId = Shader.PropertyToID("_OutlineWidth");
+	public const string OutlineShaderResource = HighlightPulse.OutlineShaderResource;
 
 	private bool highlighted;
-	private float highlightStartTime;
 	private Color outlineColor;
-	private Material pulseMaterial;
-	private int pulseColorId = -1;
-	private Color pulseBaseColor = Color.white;
-	private bool pulseHasEmission;
-	private Material outlineMaterial;
+	private HighlightPulse pulse;
+	private HighlightPulse.PulsingMaterial pulseMaterial;
 
 	private static readonly List<Container> all = new List<Container>();
 
@@ -101,14 +92,14 @@ public class Container : XRBaseInteractable
 		base.OnDisable();
 	}
 
-	/// <summary>An object has been grabbed: from now on the highlight shows the container chosen by aim, not the hovered one.</summary>
+	/// <summary>An object has been grabbed: from now on the container chosen by aim is highlighted.</summary>
 	public static void BeginAimSelection()
 	{
 		aimUsers++;
 		SetAimTarget(null);
 	}
 
-	/// <summary>The object was released: highlighting goes back to plain hover.</summary>
+	/// <summary>The object was released: with nothing held, no container is highlighted.</summary>
 	public static void EndAimSelection()
 	{
 		aimUsers = Mathf.Max(0, aimUsers - 1);
@@ -116,7 +107,7 @@ public class Container : XRBaseInteractable
 		{
 			foreach (Container container in all)
 			{
-				container.SetHighlighted(container.isHovered);
+				container.SetHighlighted(false);
 			}
 		}
 	}
@@ -170,7 +161,7 @@ public class Container : XRBaseInteractable
 		return best;
 	}
 
-	private Vector3 AimPoint
+	public Vector3 AimPoint
 	{
 		get
 		{
@@ -207,7 +198,7 @@ public class Container : XRBaseInteractable
 		}
 	}
 
-	// ---------------------------------------------------------------- highlight: brighter pulsing material + coloured outline
+	// ---------------------------------------------------------------- highlight: softly pulsing own material + coloured outline (HighlightPulse)
 
 	private void CreateHighlightResources()
 	{
@@ -225,38 +216,15 @@ public class Container : XRBaseInteractable
 			outlineColor = IDcontainer == Type.RECYCLE ? OutlineOrange : OutlineGreen;
 		}
 
-		if (hilightMaterial != null)
+		// One private copy per container, so that pulsing never touches the material asset. Based on the container's own
+		// look; the highlight material is only a fallback when there is no default material.
+		Material source = defaultMaterial != null ? defaultMaterial : hilightMaterial;
+		if (source != null)
 		{
-			// One private copy per container, so that pulsing never touches the material asset.
-			pulseMaterial = new Material(hilightMaterial);
-			pulseMaterial.name = hilightMaterial.name + " (pulse)";
-			pulseColorId = pulseMaterial.HasProperty(BaseColorId) ? BaseColorId : (pulseMaterial.HasProperty(ColorId) ? ColorId : -1);
-			if (pulseColorId != -1)
-			{
-				pulseBaseColor = pulseMaterial.GetColor(pulseColorId);
-			}
-			pulseHasEmission = pulseMaterial.HasProperty(EmissionColorId);
-			if (pulseHasEmission)
-			{
-				// Only visible if the emission variant of the shader is in the build. It is for URP Lit here
-				// ("container Naranja highlight" uses it); if it were not, the base colour pulse alone remains.
-				pulseMaterial.EnableKeyword("_EMISSION");
-				pulseMaterial.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
-			}
+			pulseMaterial = new HighlightPulse.PulsingMaterial(source);
 		}
 
-		// The shader lives in Assets/Resources so that it is always included in the build (Shader.Find alone would not do that).
-		Shader outlineShader = Resources.Load<Shader>(OutlineShaderResource);
-		if (outlineShader != null && outlineShader.isSupported)
-		{
-			outlineMaterial = new Material(outlineShader);
-			outlineMaterial.name = "Container outline (" + name + ")";
-			outlineMaterial.enableInstancing = true;
-		}
-		else
-		{
-			Debug.LogWarning("Container: outline shader 'Resources/" + OutlineShaderResource + "' not found or not supported; the highlight will have no outline.");
-		}
+		pulse = new HighlightPulse("Container " + name, outlineColor);
 	}
 
 	private void SetHighlighted(bool value)
@@ -268,10 +236,11 @@ public class Container : XRBaseInteractable
 		highlighted = value;
 		if (!value)
 		{
+			pulse.End();
 			SetMaterial(defaultMaterial);
 			return;
 		}
-		highlightStartTime = Time.time;
+		pulse.Begin();
 		if (pulseMaterial == null)
 		{
 			SetMaterial(hilightMaterial);
@@ -281,11 +250,11 @@ public class Container : XRBaseInteractable
 			// sharedMaterial: every renderer shows the very same instance, the one UpdateHighlight animates.
 			if (_renderer)
 			{
-				_renderer.sharedMaterial = pulseMaterial;
+				_renderer.sharedMaterial = pulseMaterial.Copy;
 			}
 			foreach (MeshRenderer childRenderer in childrenRenderers)
 			{
-				childRenderer.sharedMaterial = pulseMaterial;
+				childRenderer.sharedMaterial = pulseMaterial.Copy;
 			}
 		}
 		UpdateHighlight();
@@ -301,125 +270,29 @@ public class Container : XRBaseInteractable
 
 	private void UpdateHighlight()
 	{
-		// 0..1, soft (sine), starting at mid level and rising.
-		float pulse = 0.5f + 0.5f * Mathf.Sin((Time.time - highlightStartTime) * PulseHz * 2f * Mathf.PI);
-
 		if (pulseMaterial != null)
 		{
-			if (pulseColorId != -1)
-			{
-				Color c = pulseBaseColor * Mathf.Lerp(PulseMinBrightness, PulseMaxBrightness, pulse);
-				c.a = pulseBaseColor.a;
-				pulseMaterial.SetColor(pulseColorId, c);
-			}
-			if (pulseHasEmission)
-			{
-				Color e = outlineColor * Mathf.Lerp(PulseMinEmission, PulseMaxEmission, pulse);
-				e.a = 1f;
-				pulseMaterial.SetColor(EmissionColorId, e);
-			}
+			float p = pulse.Value;
+			pulseMaterial.Apply(outlineColor, Mathf.Lerp(PulseMinTint, PulseMaxTint, p), 1f, outlineColor * Mathf.Lerp(PulseMinEmission, PulseMaxEmission, p));
 		}
-
-		if (outlineMaterial == null)
-		{
-			return;
-		}
-		// Centre of the container: the outline is its silhouette pushed away from this point on screen.
-		bool any = false;
-		Bounds bounds = new Bounds(transform.position, Vector3.zero);
-		foreach (MeshRenderer childRenderer in childrenRenderers)
-		{
-			if (childRenderer == null || !childRenderer.enabled || !childRenderer.gameObject.activeInHierarchy)
-			{
-				continue;
-			}
-			if (!any)
-			{
-				bounds = childRenderer.bounds;
-				any = true;
-			}
-			else
-			{
-				bounds.Encapsulate(childRenderer.bounds);
-			}
-		}
-		if (!any)
-		{
-			return;
-		}
-		Color oc = outlineColor * Mathf.Lerp(OutlineMinBrightness, 1f, pulse);
-		oc.a = 1f;
-		outlineMaterial.SetColor(OutlineColorId, oc);
-		outlineMaterial.SetVector(OutlineCenterId, bounds.center);
-		outlineMaterial.SetFloat(OutlineWidthId, OutlineWidth * Mathf.Lerp(OutlineMinWidthFactor, 1f, pulse));
-
-		RenderParams rp = new RenderParams(outlineMaterial);
-		rp.layer = gameObject.layer;
-		rp.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-		rp.receiveShadows = false;
-		rp.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
-		rp.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
-		foreach (MeshRenderer childRenderer in childrenRenderers)
-		{
-			if (childRenderer == null || !childRenderer.enabled || !childRenderer.gameObject.activeInHierarchy)
-			{
-				continue;
-			}
-			MeshFilter filter = childRenderer.GetComponent<MeshFilter>();
-			Mesh mesh = filter != null ? filter.sharedMesh : null;
-			if (mesh == null)
-			{
-				continue;
-			}
-			// A static-batched renderer draws a range of sub-meshes of the combined mesh, whose vertices are already
-			// in world space.
-			bool batched = childRenderer.isPartOfStaticBatch;
-			int first = batched ? childRenderer.subMeshStartIndex : 0;
-			int count = batched ? Mathf.Max(1, childRenderer.sharedMaterials.Length) : mesh.subMeshCount;
-			// (Scene static batching has no batch root, here and in the original build: the vertices are in world space.)
-			Matrix4x4 matrix = batched ? Matrix4x4.identity : childRenderer.transform.localToWorldMatrix;
-			for (int i = 0; i < count; i++)
-			{
-				int subMesh = first + i;
-				if (subMesh >= 0 && subMesh < mesh.subMeshCount)
-				{
-					Graphics.RenderMesh(rp, mesh, subMesh, matrix);
-				}
-			}
-		}
+		pulse.DrawOutline(childrenRenderers, gameObject.layer);
 	}
 
 	protected override void OnDestroy()
 	{
 		if (pulseMaterial != null)
 		{
-			Destroy(pulseMaterial);
+			pulseMaterial.Destroy();
+			pulseMaterial = null;
 		}
-		if (outlineMaterial != null)
+		if (pulse != null)
 		{
-			Destroy(outlineMaterial);
+			pulse.Dispose();
+			pulse = null;
 		}
 		base.OnDestroy();
 	}
 
-	protected override void OnHoverEntered(HoverEnterEventArgs args)
-	{
-		base.OnHoverEntered(args);
-		if (aimUsers > 0)
-		{
-			return;
-		}
-		SetHighlighted(true);
-		GameManager.Instance.OnContainerHovered(this);
-	}
-
-	protected override void OnHoverExited(HoverExitEventArgs args)
-	{
-		base.OnHoverExited(args);
-		if (aimUsers > 0)
-		{
-			return;
-		}
-		SetHighlighted(false);
-	}
+	// Hovering a container with an empty hand does NOT highlight it: the highlight only exists while an object is
+	// held (BeginAimSelection .. EndAimSelection), and then it follows the aim, not the hover.
 }
