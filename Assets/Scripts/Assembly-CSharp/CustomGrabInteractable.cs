@@ -152,6 +152,17 @@ public class CustomGrabInteractable : XRGrabInteractable
 		base.OnSelectEntering(args);
 	}
 
+	// Once released into the right container it is flying in (and then destroyed): it can no longer be hovered or grabbed.
+	public override bool IsSelectableBy(IXRSelectInteractor interactor)
+	{
+		return !dumped && base.IsSelectableBy(interactor);
+	}
+
+	public override bool IsHoverableBy(IXRHoverInteractor interactor)
+	{
+		return !dumped && base.IsHoverableBy(interactor);
+	}
+
 	protected override void OnSelectEntered(SelectEnterEventArgs args)
 	{
 		base.OnSelectEntered(args);

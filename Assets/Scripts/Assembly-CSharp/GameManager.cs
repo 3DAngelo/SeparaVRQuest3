@@ -184,9 +184,28 @@ public class GameManager : MonoBehaviour
 		if (score == totalResiduos)
 		{
 			descResiduo.text = msjWin;
-			Aplausos.Play();
+			PlayApplause();
 			gameState.SetWinState();
 		}
+	}
+
+	// The scene's Aplausos field points to the green container's lid AudioSource (ContainerAbre clip), so the applause
+	// clip is loaded from Assets/Resources/Aplausos and played on its own 2D source, kept across the load of the Win scene.
+	private void PlayApplause()
+	{
+		AudioClip clip = Resources.Load<AudioClip>("Aplausos");
+		if (clip == null)
+		{
+			Debug.LogWarning("GameManager: no applause clip at Assets/Resources/Aplausos; the win applause is not played.");
+			return;
+		}
+		GameObject go = new GameObject("Aplausos");
+		DontDestroyOnLoad(go);
+		AudioSource source = go.AddComponent<AudioSource>();
+		source.clip = clip;
+		source.spatialBlend = 0f;
+		source.Play();
+		Destroy(go, clip.length + 0.1f);
 	}
 
 	private void CheckEvolve()
