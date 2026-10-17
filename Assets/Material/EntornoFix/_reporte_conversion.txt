@@ -1,0 +1,48 @@
+[EntornoFix] CONVERSIÓN - Assets/Mesh/EntornoFix.fbx
+nombre | fuente | shader origen | base | normal | detalle | alpha clip | destino | avisos
+Atlas | proyecto | Universal Render Pipeline/Simple Lit | AtlasFull | - | - | no | M_AtlasFull_1 | mismo difuso, no colapsado por: tiling/offset
+AtlasEdificios | proyecto | Universal Render Pipeline/Simple Lit | AtlasFull | - | - | no | M_AtlasFull | mismo difuso, no colapsado por: tiling/offset
+CasaGrande | proyecto | Universal Render Pipeline/Lit | CasaGrande | - | - | no | M_CasaGrande | -
+CasaGrandePuerta | proyecto | Universal Render Pipeline/Simple Lit | CasaGrandePuerta | - | - | no | M_CasaGrandePuerta | -
+Cordon | proyecto | Universal Render Pipeline/Simple Lit | cordon | - | - | no | M_cordon | -
+Optimized_Bark_Material | embebido | Shader Graphs/PhysicalMaterial3DsMax | diffuse_0 | - | - | si(0.5) | M_diffuse_0 | -
+Optimized_Bark_Material_1 | embebido | Shader Graphs/PhysicalMaterial3DsMax | diffuse_4 | - | - | no | M_diffuse_4 | -
+Optimized_Bark_Material_2 | embebido | Shader Graphs/PhysicalMaterial3DsMax | diffuse | - | - | si(0.5) | M_diffuse | -
+Optimized_Bark_Material_3 | embebido | Shader Graphs/PhysicalMaterial3DsMax | diffuse_2 | - | - | si(0.5) | M_diffuse_2 | -
+Optimized_Bark_Material_4 | embebido | Shader Graphs/PhysicalMaterial3DsMax | diffuse_5 | - | - | si(0.5) | M_diffuse_5 | -
+Optimized_Bark_Material_5 | embebido | Shader Graphs/PhysicalMaterial3DsMax | diffuse_1 | - | - | si(0.5) | M_diffuse_1 | -
+Optimized_Bark_Material_6 | embebido | Shader Graphs/PhysicalMaterial3DsMax | diffuse_3 | - | - | no | M_diffuse_3 | -
+Optimized_Leaf_Material | embebido | Shader Graphs/PhysicalMaterial3DsMax | diffuse_0 | - | - | si(0.5) | M_diffuse_0 | -
+Optimized_Leaf_Material_1 | embebido | Shader Graphs/PhysicalMaterial3DsMax | diffuse | - | - | si(0.5) | M_diffuse | -
+Optimized_Leaf_Material_2 | embebido | Shader Graphs/PhysicalMaterial3DsMax | diffuse_2 | - | - | si(0.5) | M_diffuse_2 | -
+Optimized_Leaf_Material_3 | embebido | Shader Graphs/PhysicalMaterial3DsMax | diffuse_5 | - | - | si(0.5) | M_diffuse_5 | -
+Optimized_Leaf_Material_4 | embebido | Shader Graphs/PhysicalMaterial3DsMax | diffuse_1 | - | - | si(0.5) | M_diffuse_1 | -
+PosteBondi | proyecto | Universal Render Pipeline/Simple Lit | PosteBondi | - | - | no | M_PosteBondi | -
+Simple_Stone_Mtl_Granite_bump | proyecto | Universal Render Pipeline/Simple Lit | Simple_Concrete_Mtl_BroomCurved_pattern | - | - | no | M_Simple_Concrete_Mtl_BroomCurved_pattern | -
+Vereda0 | proyecto | Universal Render Pipeline/Lit | BaldosaAlbedo | - | BaldosaDetail0/- | no | M_BaldosaAlbedo | -
+amrillo | proyecto | Universal Render Pipeline/Simple Lit | amrillo | - | - | no | M_amrillo | -
+cordon | proyecto | Universal Render Pipeline/Simple Lit | cordon | - | - | no | M_cordon | -
+edificioColor | proyecto | Universal Render Pipeline/Simple Lit | EdificioMarron | - | - | no | M_EdificioMarron | -
+edificioatras | proyecto | Universal Render Pipeline/Simple Lit | edificioatras | - | - | no | M_edificioatras | -
+edificioladrillo | proyecto | Universal Render Pipeline/Simple Lit | EdificioGrande | - | - | no | M_EdificioGrande | -
+Grupos:
+Assets/Material/EntornoFix/M_diffuse_5.mat <- Optimized_Bark_Material_4, Optimized_Leaf_Material_3
+Assets/Material/EntornoFix/M_CasaGrandePuerta.mat <- CasaGrandePuerta
+Assets/Material/EntornoFix/M_amrillo.mat <- amrillo
+Assets/Material/EntornoFix/M_diffuse_0.mat <- Optimized_Bark_Material, Optimized_Leaf_Material
+Assets/Material/EntornoFix/M_Simple_Concrete_Mtl_BroomCurved_pattern.mat <- Simple_Stone_Mtl_Granite_bump
+Assets/Material/EntornoFix/M_diffuse.mat <- Optimized_Bark_Material_2, Optimized_Leaf_Material_1
+Assets/Material/EntornoFix/M_AtlasFull.mat <- AtlasEdificios
+Assets/Material/EntornoFix/M_AtlasFull_1.mat <- Atlas
+Assets/Material/EntornoFix/M_diffuse_2.mat <- Optimized_Bark_Material_3, Optimized_Leaf_Material_2
+Assets/Material/EntornoFix/M_diffuse_1.mat <- Optimized_Bark_Material_5, Optimized_Leaf_Material_4
+Assets/Material/EntornoFix/M_edificioatras.mat <- edificioatras
+Assets/Material/EntornoFix/M_BaldosaAlbedo.mat <- Vereda0
+Assets/Material/EntornoFix/M_cordon.mat <- Cordon, cordon
+Assets/Material/EntornoFix/M_EdificioGrande.mat <- edificioladrillo
+Assets/Material/EntornoFix/M_diffuse_3.mat <- Optimized_Bark_Material_6
+Assets/Material/EntornoFix/M_CasaGrande.mat <- CasaGrande
+Assets/Material/EntornoFix/M_diffuse_4.mat <- Optimized_Bark_Material_1
+Assets/Material/EntornoFix/M_EdificioMarron.mat <- edificioColor
+Assets/Material/EntornoFix/M_PosteBondi.mat <- PosteBondi
+Resumen: 25 materiales origen | 19 materiales destino | 13 desde proyecto | 12 desde embebido | 10 alpha clip | 2 con avisos
