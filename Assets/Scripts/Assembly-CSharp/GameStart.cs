@@ -41,7 +41,9 @@ public class GameStart : MonoBehaviour
 
 	public void LoadScene()
 	{
+		#if UNITY_EDITOR
 		Debug.Log("Loading Scene 1");
+		#endif
 		started = true;
 		// ScreenFader ignores the call if a load is already in progress.
 		ScreenFader.Instance.FadeOutAndLoad(GameSceneBuildIndex, ScreenFader.DefaultFadeOutSeconds, ScreenFader.DefaultFadeInSeconds);
@@ -56,7 +58,9 @@ public class GameStart : MonoBehaviour
 		XRPokeFollowAffordance affordance = FindPressedButton();
 		if (affordance == null || affordance.pokeFollowTransform == null)
 		{
+			#if UNITY_EDITOR
 			Debug.LogWarning("GameStart: start button (XRPokeFollowAffordance) not found; it will not stay pressed.");
+			#endif
 			return;
 		}
 

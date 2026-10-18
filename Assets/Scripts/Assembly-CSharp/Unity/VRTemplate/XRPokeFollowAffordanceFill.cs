@@ -134,7 +134,9 @@ namespace Unity.VRTemplate
             else
             {
                 enabled = false;
+                #if UNITY_EDITOR
                 Debug.LogWarning($"Missing Poke Follow Transform assignment on {this}. Disabling component.", this);
+                #endif
             }
         }
 

@@ -21,7 +21,7 @@ void LitDirtyPassFragment(
     SurfaceData surfaceData;
     InitializeStandardLitSurfaceData(input.uv, surfaceData);
     // suciedad: positionWS siempre existe en forward (Shadows.hlsl define REQUIRES_WORLD_SPACE_POS_INTERPOLATOR)
-    SeparaVR_ApplyDirt(surfaceData, input.positionWS, half3(input.normalWS));
+    SeparaVR_ApplyDirt(surfaceData, input.positionWS);
 
 #ifdef LOD_FADE_CROSSFADE
     LODFadeCrossFade(input.positionCS);

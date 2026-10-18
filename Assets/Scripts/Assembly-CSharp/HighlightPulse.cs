@@ -50,7 +50,9 @@ public class HighlightPulse
 		}
 		else
 		{
+			#if UNITY_EDITOR
 			Debug.LogWarning("HighlightPulse: outline shader 'Resources/" + OutlineShaderResource + "' not found or not supported; the highlight of '" + ownerName + "' will have no outline.");
+			#endif
 		}
 	}
 

@@ -174,7 +174,9 @@ public class CustomGrabInteractable : XRGrabInteractable
 		if (args.interactorObject is XRRayInteractor ray)
 		{
 			rayInteractor = ray;
+			#if UNITY_EDITOR
 			Debug.Log("Ray interactor detected");
+			#endif
 		}
 		if (args.interactorObject is NearFarInteractor nearFar)
 		{
@@ -197,10 +199,14 @@ public class CustomGrabInteractable : XRGrabInteractable
 		base.OnSelectExited(args);
 		if (currentTargetContainer != null)
 		{
+			#if UNITY_EDITOR
 			Debug.Log("Exit on Container: " + currentTargetContainer.descripcion);
+			#endif
 			if (currentTargetContainer.IDcontainer == GetComponent<Residuo>().IDcontenedor)
 			{
+				#if UNITY_EDITOR
 				Debug.Log("Correct Container");
+				#endif
 				Residuo residuo = GetComponent<Residuo>();
 				dumped = true;
 				if (GameManager.Instance != null)
@@ -212,7 +218,9 @@ public class CustomGrabInteractable : XRGrabInteractable
 			{
 				Rigidbody body = GetComponent<Rigidbody>();
 				body.isKinematic = false;
+				#if UNITY_EDITOR
 				Debug.Log("Incorrect Container");
+				#endif
 				GameManager.Instance.GetComponent<AudioSource>().Play();
 				StartCoroutine(TossToward(currentTargetContainer.AimPoint));
 			}
@@ -276,13 +284,17 @@ public class CustomGrabInteractable : XRGrabInteractable
 		Vector3 origin;
 		Vector3 direction;
 		HandCloseGrab.GetAim(farInteractor, transform, out origin, out direction);
+		#if UNITY_EDITOR
 		Debug.DrawRay(origin, direction * 10f, Color.red);
+		#endif
 		Container container = Container.PickByHorizontalAim(origin, direction, currentTargetContainer);
 		if (container != currentTargetContainer)
 		{
 			currentTargetContainer = container;
 			Container.SetAimTarget(container);
+			#if UNITY_EDITOR
 			Debug.Log(container != null ? "New Current Container: " + container.descripcion : "No container selected");
+			#endif
 		}
 	}
 

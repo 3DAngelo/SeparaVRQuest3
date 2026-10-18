@@ -196,7 +196,9 @@ public class GameManager : MonoBehaviour
 		AudioClip clip = Resources.Load<AudioClip>("Aplausos");
 		if (clip == null)
 		{
+			#if UNITY_EDITOR
 			Debug.LogWarning("GameManager: no applause clip at Assets/Resources/Aplausos; the win applause is not played.");
+			#endif
 			return;
 		}
 		GameObject go = new GameObject("Aplausos");
@@ -225,7 +227,9 @@ public class GameManager : MonoBehaviour
 
 	public void OnObjectGrabbed(GameObject grabbedObject)
 	{
+		#if UNITY_EDITOR
 		Debug.Log("Se agarró el objeto: " + grabbedObject.name);
+		#endif
 		gameState.SetDumpState();
 		if (grabbedObject.GetComponent<Residuo>() != null)
 		{
@@ -235,6 +239,8 @@ public class GameManager : MonoBehaviour
 
 	public void OnContainerHovered(Container container)
 	{
+		#if UNITY_EDITOR
 		Debug.Log("Contenedor detectado: " + container.descripcion);
+		#endif
 	}
 }

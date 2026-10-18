@@ -1,7 +1,9 @@
 // Suciedad de EntornoFix: pasa los materiales de Assets/Material/EntornoFix a "SeparaVR/Lit Dirty"
-// (quita keywords/texturas que el shader recortado no usa, asigna BaldosaDetail0) y conecta CleanlinessController.
+// (quita keywords/texturas que el shader recortado no usa, setea _DirtAmount y _CleanBrightness) y conecta CleanlinessController.
+// La suciedad es procedural (sin textura); tamaño y color son #define en SeparaVR_LitDirtyInput.hlsl.
 // Se puede volver a correr sobre materiales que ya usan el shader.
-// En el editor _Cleanliness queda en 1 (limpio) salvo en Play o con el menú de previsualización.
+// En el editor _Cleanliness queda en 0 (sucio, como al empezar el juego) salvo con el menú de previsualización.
+// Meta hornea siempre el albedo limpio, así que el valor no afecta al bake.
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -22,17 +24,14 @@ public static class EntornoFixDirtSetup
 
     static EntornoFixDirtSetup()
     {
-        if (!EditorApplication.isPlayingOrWillChangePlaymode) SetClean();
-        Lightmapping.bakeStarted += SetClean;
-        EditorApplication.playModeStateChanged += s => { if (s == PlayModeStateChange.EnteredEditMode) SetClean(); };
+        if (!EditorApplication.isPlayingOrWillChangePlaymode) SetEditorDefault();
+        EditorApplication.playModeStateChanged += s => { if (s == PlayModeStateChange.EnteredEditMode) SetEditorDefault(); };
     }
 
-    static void SetClean() { Shader.SetGlobalFloat("_Cleanliness", 1f); }
+    // en el editor se ve como al empezar el juego (sucio)
+    static void SetEditorDefault() { Shader.SetGlobalFloat("_Cleanliness", 0f); }
 
     // ---------------- materiales ----------------
-
-    const string DirtTexPath = "Assets/Texture2D/BaldosaDetail0.png";
-    const float DirtTiling = 2f;
 
     // keywords que el shader recortado todavía usa; el resto se quita
     static readonly HashSet<string> KeepKw = new HashSet<string> {
@@ -45,7 +44,10 @@ public static class EntornoFixDirtSetup
         { "_BumpMap", "normal map" }, { "_ParallaxMap", "height map" }, { "_OcclusionMap", "occlusion map" },
         { "_EmissionMap", "emission map" }, { "_DetailMask", "detail mask" }, { "_DetailAlbedoMap", "detail albedo" },
         { "_DetailNormalMap", "detail normal" }, { "_SpecGlossMap", "specular map" }, { "_ClearCoatMap", "clear coat map" },
-        { "_MainTex", "_MainTex (obsoleto)" } };
+        { "_MainTex", "_MainTex (obsoleto)" }, { "_DirtMap", "dirt map (ahora procedural)" } };
+
+    // floats que ya no existen en el shader
+    static readonly HashSet<string> RemovedFloats = new HashSet<string> { "_DirtTiling" };
 
     [MenuItem(Menu + "Previsualizar (solo log)")]
     static void PreviewMats() { RunMats(false); }
@@ -62,6 +64,14 @@ public static class EntornoFixDirtSetup
         if (n.Contains("casa") || n.Contains("edificio")) return 0.7f; // incluye edificioatras
         if (n.Contains("postebondi")) return 0.6f;
         return 0.8f;
+    }
+
+    // brillo del albedo limpio por material (1 = sin cambio). La vereda (BaldosaAlbedo) es muy oscura:
+    // el sistema viejo la limpiaba con detalle x2 (~x2), así que limpio x2 para igualar a BaldosaDetail4.
+    static float CleanBrightnessFor(Material m)
+    {
+        if (m.name == "M_BaldosaAlbedo") return 2f;
+        return 1f;
     }
 
     static List<Material> LoadMats()
@@ -105,7 +115,7 @@ public static class EntornoFixDirtSetup
         return def;
     }
 
-    // borra de m_SavedProperties.m_TexEnvs las texturas que ya no usa el shader; devuelve lo que tenía asignado
+    // borra de m_SavedProperties las texturas y floats que ya no usa el shader; devuelve lo que tenía asignado
     static List<string> StripRemovedTextures(Material m, bool apply)
     {
         var info = new List<string>();
@@ -123,6 +133,11 @@ public static class EntornoFixDirtSetup
                 info.Add("tenía " + label + " '" + t.objectReferenceValue.name + "', se quita");
             if (apply) tex.DeleteArrayElementAtIndex(i);
         }
+        var floats = so.FindProperty("m_SavedProperties.m_Floats");
+        if (floats != null && apply)
+            for (int i = floats.arraySize - 1; i >= 0; i--)
+                if (RemovedFloats.Contains(floats.GetArrayElementAtIndex(i).FindPropertyRelative("first").stringValue))
+                    floats.DeleteArrayElementAtIndex(i);
         if (apply)
         {
             var inv = so.FindProperty("m_InvalidKeywords");
@@ -136,14 +151,12 @@ public static class EntornoFixDirtSetup
     {
         var sh = Shader.Find(ShaderName);
         if (sh == null) { Debug.LogError("[EntornoFix] No se encontró el shader '" + ShaderName + "' (¿compiló?)."); return; }
-        var dirtTex = AssetDatabase.LoadAssetAtPath<Texture2D>(DirtTexPath);
-        if (dirtTex == null) { Debug.LogError("[EntornoFix] No se encontró " + DirtTexPath); return; }
         var mats = LoadMats();
         if (mats.Count == 0) { Debug.LogError("[EntornoFix] No hay materiales en " + MatFolder); return; }
 
         var sb = new StringBuilder();
         sb.AppendLine("[EntornoFix] Suciedad materiales - " + (apply ? "APLICADO" : "PREVISUALIZACIÓN (sin cambios)") + " | " + mats.Count
-            + " materiales | _DirtMap = " + dirtTex.name + " | _DirtTiling = " + DirtTiling);
+            + " materiales | suciedad procedural (sin textura)");
 
         if (apply)
         {
@@ -158,6 +171,8 @@ public static class EntornoFixDirtSetup
             bool clip = kwBefore.Contains("_ALPHATEST_ON") || SavedFloat(m, "_AlphaClip", 0f) > 0.5f;
             float oldDirt = m.shader == sh ? m.GetFloat("_DirtAmount") : -1f;
             float newDirt = DirtFor(m, clip);
+            float oldBright = m.shader == sh ? m.GetFloat("_CleanBrightness") : -1f;
+            float newBright = CleanBrightnessFor(m);
             var notes = new List<string>();
 
             // keywords finales: solo las que existen en el shader recortado
@@ -170,7 +185,8 @@ public static class EntornoFixDirtSetup
             notes.AddRange(StripRemovedTextures(m, false));
 
             string line = m.name + " | " + m.shader.name + " -> " + ShaderName + " | cola " + m.renderQueue
-                + (clip ? " | alpha clip" : "") + " | _DirtAmount " + (oldDirt < 0 ? "(nuevo)" : oldDirt.ToString("0.##")) + " -> " + newDirt.ToString("0.##");
+                + (clip ? " | alpha clip" : "") + " | _DirtAmount " + (oldDirt < 0 ? "(nuevo)" : oldDirt.ToString("0.##")) + " -> " + newDirt.ToString("0.##")
+                + " | _CleanBrightness " + (oldBright < 0 ? "(nuevo)" : oldBright.ToString("0.##")) + " -> " + newBright.ToString("0.##");
             foreach (var n in notes) line += "\n    " + n;
             sb.AppendLine(line);
             if (!apply) continue;
@@ -194,12 +210,11 @@ public static class EntornoFixDirtSetup
             m.doubleSidedGI = dsgi;
             for (int i = 0; i < Passes.Length; i++) m.SetShaderPassEnabled(Passes[i], passOn[i]);
 
-            m.SetTexture("_DirtMap", dirtTex);
-            m.SetFloat("_DirtTiling", DirtTiling);
             m.SetFloat("_DirtAmount", newDirt);
+            m.SetFloat("_CleanBrightness", newBright);
             EditorUtility.SetDirty(m);
 
-            // al final: borrar texturas viejas y keywords inválidas (SerializedObject nuevo, con el shader ya cambiado)
+            // al final: borrar texturas/floats viejos (incluye _DirtMap/_DirtTiling) y keywords inválidas (SerializedObject nuevo, con el shader ya cambiado)
             StripRemovedTextures(m, true);
         }
 
@@ -312,6 +327,6 @@ public static class EntornoFixDirtSetup
         Shader.SetGlobalFloat("_Cleanliness", v);
         SceneView.RepaintAll();
         InternalEditorUtility.RepaintAllViews();
-        Debug.Log("[EntornoFix] _Cleanliness = " + v + " (se vuelve a 1 al recompilar o salir de Play)");
+        Debug.Log("[EntornoFix] _Cleanliness = " + v + " (se vuelve a 0 al recompilar o salir de Play)");
     }
 }

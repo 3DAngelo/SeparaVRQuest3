@@ -1,6 +1,6 @@
 // URP Lit (17.3) recortado + suciedad global que se limpia (_Cleanliness, ver CleanlinessController).
 // Solo albedo, metallic/smoothness y alpha clip (mismos nombres que Lit). Sin normal/emisión/detalle/parallax/oclusión.
-// Suciedad: _DirtMap (BaldosaDetail0) en mundo, mezclada como el detalle x2 de URP.
+// Suciedad: procedural (ruido 3D en mundo, sin textura), manchas que se achican al limpiar. _CleanBrightness aclara el albedo limpio.
 // Pases: ForwardLit, ShadowCaster, DepthOnly, DepthNormals, Meta, MotionVectors, XRMotionVectors.
 // Sin GBuffer ni Universal2D (el proyecto usa Forward). Meta hornea SIN suciedad.
 Shader "SeparaVR/Lit Dirty"
@@ -21,11 +21,10 @@ Shader "SeparaVR/Lit Dirty"
         [ToggleOff] _SpecularHighlights("Specular Highlights", Float) = 1.0
         [ToggleOff] _EnvironmentReflections("Environment Reflections", Float) = 1.0
 
-        // Suciedad (_Cleanliness y _DirtGroundY son globales: no declararlos aquí)
+        // Suciedad (_Cleanliness es global: no declararlo aquí). Tamaño y color: #define en SeparaVR_LitDirtyInput.hlsl
         [Header(Suciedad)]
-        [NoScaleOffset] _DirtMap("Dirt Map (BaldosaDetail0, gris 0.5 = neutro)", 2D) = "grey" {}
-        _DirtTiling("Escala en mundo (repeticiones/m)", Float) = 2.0
         _DirtAmount("Cantidad (0 = resiste)", Range(0.0, 1.0)) = 1.0
+        _CleanBrightness("Brillo limpio", Range(0.0, 3.0)) = 1.0
 
         // Blending state
         _Surface("__surface", Float) = 0.0

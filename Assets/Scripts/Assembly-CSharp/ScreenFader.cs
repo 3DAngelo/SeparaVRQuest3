@@ -86,7 +86,9 @@ public class ScreenFader : MonoBehaviour
 	{
 		if (instance != null && instance != this)
 		{
+			#if UNITY_EDITOR
 			Debug.LogWarning("ScreenFader: a second instance on '" + name + "' was ignored.");
+			#endif
 			Destroy(this);
 			return;
 		}
@@ -104,7 +106,9 @@ public class ScreenFader : MonoBehaviour
 		}
 		else
 		{
+			#if UNITY_EDITOR
 			Debug.LogWarning("ScreenFader: shader 'Resources/" + ShaderResource + "' not found or not supported; fades will not be visible (scene loads still work).");
+			#endif
 		}
 
 		// Vertices directly in clip space (the shader ignores the matrices): this quad covers the whole view.
@@ -158,7 +162,9 @@ public class ScreenFader : MonoBehaviour
 	{
 		if (loading)
 		{
+			#if UNITY_EDITOR
 			Debug.LogWarning("ScreenFader: a scene load is already in progress; request for scene " + buildIndex + " ignored.");
+			#endif
 			return;
 		}
 		if (buildIndex < 0 || buildIndex >= SceneManager.sceneCountInBuildSettings)
@@ -176,7 +182,9 @@ public class ScreenFader : MonoBehaviour
 		if (loading)
 		{
 			// The load sequence owns the overlay until its fade in ends; a second fade would fight it.
+			#if UNITY_EDITOR
 			Debug.LogWarning("ScreenFader: fade request ignored, a scene load is in progress.");
+			#endif
 			return null;
 		}
 		StopFade();
