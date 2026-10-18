@@ -17,10 +17,10 @@ CBUFFER_START(UnityPerMaterial)
 float4 _BaseMap_ST;
 float4 _BaseMap_TexelSize;
 half4 _BaseColor;
-half _Cutoff;
+half _Cutoff;  // ya no es Property; lo referencian los pases de URP (sin _ALPHATEST_ON no se usa)
 half _Smoothness;
 half _Metallic;
-half _Surface;
+half _Surface; // ya no es Property (siempre 0 = opaco); se mantiene porque LitForwardPass.hlsl de URP lo referencia
 // suciedad (por material)
 half _DirtAmount;
 half _CleanBrightness; // multiplica el albedo limpio (también lo hornea Meta)

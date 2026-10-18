@@ -1,5 +1,5 @@
-// URP Lit (17.3) recortado + suciedad global que se limpia (_Cleanliness, ver CleanlinessController).
-// Solo albedo, metallic/smoothness y alpha clip (mismos nombres que Lit). Sin normal/emisión/detalle/parallax/oclusión.
+// URP Lit (17.3) recortado, solo opaco + suciedad global que se limpia (_Cleanliness, ver CleanlinessController).
+// Solo albedo y metallic/smoothness (mismos nombres que Lit), siempre opaco (sin transparencia ni alpha clip). Sin normal/emisión/detalle/parallax/oclusión.
 // Suciedad: procedural (ruido 3D en mundo, sin textura), manchas que se achican al limpiar. _CleanBrightness aclara el albedo limpio.
 // Pases: ForwardLit, ShadowCaster, DepthOnly, DepthNormals, Meta, MotionVectors, XRMotionVectors.
 // Sin GBuffer ni Universal2D (el proyecto usa Forward). Meta hornea SIN suciedad.
@@ -9,8 +9,6 @@ Shader "SeparaVR/Lit Dirty"
     {
         [MainTexture] _BaseMap("Albedo", 2D) = "white" {}
         [MainColor] _BaseColor("Color", Color) = (1,1,1,1)
-
-        _Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
         _Smoothness("Smoothness", Range(0.0, 1.0)) = 0.5
         _SmoothnessTextureChannel("Smoothness texture channel", Float) = 0
@@ -26,18 +24,8 @@ Shader "SeparaVR/Lit Dirty"
         _DirtAmount("Cantidad (0 = resiste)", Range(0.0, 1.0)) = 1.0
         _CleanBrightness("Brillo limpio", Range(0.0, 3.0)) = 1.0
 
-        // Blending state
-        _Surface("__surface", Float) = 0.0
-        _Blend("__blend", Float) = 0.0
+        // Estado (siempre opaco: sin Surface/Blend/AlphaClip/ZWrite)
         _Cull("__cull", Float) = 2.0
-        [ToggleUI] _AlphaClip("__clip", Float) = 0.0
-        [HideInInspector] _SrcBlend("__src", Float) = 1.0
-        [HideInInspector] _DstBlend("__dst", Float) = 0.0
-        [HideInInspector] _SrcBlendAlpha("__srcA", Float) = 1.0
-        [HideInInspector] _DstBlendAlpha("__dstA", Float) = 0.0
-        [HideInInspector] _ZWrite("__zw", Float) = 1.0
-        [HideInInspector] _BlendModePreserveSpecular("_BlendModePreserveSpecular", Float) = 1.0
-        [HideInInspector] _AlphaToMask("__alphaToMask", Float) = 0.0
         [HideInInspector] _AddPrecomputedVelocity("_AddPrecomputedVelocity", Float) = 0.0
         [HideInInspector] _XRMotionVectorsPass("_XRMotionVectorsPass", Float) = 1.0
 
@@ -55,6 +43,7 @@ Shader "SeparaVR/Lit Dirty"
         Tags
         {
             "RenderType" = "Opaque"
+            "Queue" = "Geometry"
             "RenderPipeline" = "UniversalPipeline"
             "UniversalMaterialType" = "Lit"
             "IgnoreProjector" = "True"
@@ -71,10 +60,9 @@ Shader "SeparaVR/Lit Dirty"
                 "LightMode" = "UniversalForward"
             }
 
-            Blend[_SrcBlend][_DstBlend], [_SrcBlendAlpha][_DstBlendAlpha]
-            ZWrite[_ZWrite]
+            Blend One Zero
+            ZWrite On
             Cull[_Cull]
-            AlphaToMask[_AlphaToMask]
 
             HLSLPROGRAM
             #pragma target 2.0
@@ -85,9 +73,6 @@ Shader "SeparaVR/Lit Dirty"
             // -------------------------------------
             // Material Keywords
             #pragma shader_feature_local _RECEIVE_SHADOWS_OFF
-            #pragma shader_feature_local_fragment _SURFACE_TYPE_TRANSPARENT
-            #pragma shader_feature_local_fragment _ALPHATEST_ON
-            #pragma shader_feature_local_fragment _ _ALPHAPREMULTIPLY_ON _ALPHAMODULATE_ON
             #pragma shader_feature_local_fragment _METALLICSPECGLOSSMAP
             #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
             #pragma shader_feature_local_fragment _SPECULARHIGHLIGHTS_OFF
@@ -157,7 +142,6 @@ Shader "SeparaVR/Lit Dirty"
             #pragma vertex ShadowPassVertex
             #pragma fragment ShadowPassFragment
 
-            #pragma shader_feature_local _ALPHATEST_ON
             #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 
             #pragma multi_compile_instancing
@@ -190,7 +174,6 @@ Shader "SeparaVR/Lit Dirty"
             #pragma vertex DepthOnlyVertex
             #pragma fragment DepthOnlyFragment
 
-            #pragma shader_feature_local _ALPHATEST_ON
             #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 
             #pragma multi_compile _ LOD_FADE_CROSSFADE
@@ -221,7 +204,6 @@ Shader "SeparaVR/Lit Dirty"
             #pragma vertex DepthNormalsVertex
             #pragma fragment DepthNormalsFragment
 
-            #pragma shader_feature_local _ALPHATEST_ON
             #pragma shader_feature_local_fragment _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
 
             #pragma multi_compile _ LOD_FADE_CROSSFADE
@@ -254,7 +236,6 @@ Shader "SeparaVR/Lit Dirty"
             #pragma fragment UniversalFragmentMetaLit
 
             #pragma shader_feature_local_fragment _METALLICSPECGLOSSMAP
-            #pragma shader_feature_local_fragment _ALPHATEST_ON
             #pragma shader_feature_local_fragment _ _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
             #pragma shader_feature EDITOR_VISUALIZATION
 
@@ -271,7 +252,6 @@ Shader "SeparaVR/Lit Dirty"
             ColorMask RG
 
             HLSLPROGRAM
-            #pragma shader_feature_local _ALPHATEST_ON
             #pragma multi_compile _ LOD_FADE_CROSSFADE
             #pragma shader_feature_local_vertex _ADD_PRECOMPUTED_VELOCITY
 
@@ -296,7 +276,6 @@ Shader "SeparaVR/Lit Dirty"
             }
 
             HLSLPROGRAM
-            #pragma shader_feature_local _ALPHATEST_ON
             #pragma multi_compile _ LOD_FADE_CROSSFADE
             #pragma shader_feature_local_vertex _ADD_PRECOMPUTED_VELOCITY
             #define APPLICATION_SPACE_WARP_MOTION 1

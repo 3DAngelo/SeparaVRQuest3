@@ -119,7 +119,7 @@ public class Container : XRBaseInteractable
 		{
 			container.SetHighlighted(container == target);
 		}
-		if (target != null && GameManager.Instance != null)
+		if (target != null && GameManager.HasInstance)
 		{
 			GameManager.Instance.OnContainerHovered(target);
 		}

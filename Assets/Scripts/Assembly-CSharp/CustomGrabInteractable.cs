@@ -188,15 +188,21 @@ public class CustomGrabInteractable : XRGrabInteractable
 				Container.BeginAimSelection();
 			}
 		}
-		if (GameManager.Instance != null)
+		if (GameManager.HasInstance)
 		{
 			GameManager.Instance.OnObjectGrabbed(gameObject);
 		}
 	}
 
+	// Se dispara cada vez que se suelta el objeto: (objeto, contenedor elegido o null si se soltó sin apuntar a
+	// ninguno, true si el contenedor era el correcto). Lo usa el tutorial de la Intro; el juego no lo necesita.
+	public static event System.Action<CustomGrabInteractable, Container, bool> Soltado;
+
 	protected override void OnSelectExited(SelectExitEventArgs args)
 	{
 		base.OnSelectExited(args);
+		Container soltadoEn = currentTargetContainer;
+		bool soltadoCorrecto = false;
 		if (currentTargetContainer != null)
 		{
 			#if UNITY_EDITOR
@@ -209,7 +215,9 @@ public class CustomGrabInteractable : XRGrabInteractable
 				#endif
 				Residuo residuo = GetComponent<Residuo>();
 				dumped = true;
-				if (GameManager.Instance != null)
+				soltadoCorrecto = true;
+				// Sin GameManager (tutorial de la Intro) la animación de arrojar la hace quien escucha Soltado.
+				if (GameManager.HasInstance)
 				{
 					GameManager.Instance.IniciarArrojarResiduos(currentTargetContainer, residuo);
 				}
@@ -221,7 +229,14 @@ public class CustomGrabInteractable : XRGrabInteractable
 				#if UNITY_EDITOR
 				Debug.Log("Incorrect Container");
 				#endif
-				GameManager.Instance.GetComponent<AudioSource>().Play();
+				if (GameManager.HasInstance)
+				{
+					AudioSource errorAudio = GameManager.Instance.GetComponent<AudioSource>();
+					if (errorAudio != null)
+					{
+						errorAudio.Play();
+					}
+				}
 				StartCoroutine(TossToward(currentTargetContainer.AimPoint));
 			}
 		}
@@ -235,6 +250,10 @@ public class CustomGrabInteractable : XRGrabInteractable
 				aimSelecting = false;
 				Container.EndAimSelection();
 			}
+		}
+		if (Soltado != null)
+		{
+			Soltado(this, soltadoEn, soltadoCorrecto);
 		}
 	}
 

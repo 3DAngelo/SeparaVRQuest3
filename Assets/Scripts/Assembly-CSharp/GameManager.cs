@@ -51,6 +51,16 @@ public class GameManager : MonoBehaviour
 		}
 	}
 
+	// true si hay un GameManager vivo en escena. A diferencia de Instance, no loguea error cuando no hay
+	// (por ejemplo en la escena Intro / tutorial, que no tiene GameManager).
+	public static bool HasInstance
+	{
+		get
+		{
+			return _instance != null;
+		}
+	}
+
 	private void Start()
 	{
 		if (_instance != null)
