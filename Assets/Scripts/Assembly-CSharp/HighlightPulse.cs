@@ -32,6 +32,8 @@ public class HighlightPulse
 
 	/// <summary>Colour of the outline at the top of the pulse.</summary>
 	public Color OutlineColor;
+	/// <summary>Grosor del outline en unidades de mundo (metros) para este dueño.</summary>
+	public float Width = OutlineWidth;
 
 	private Material outlineMaterial;
 	private float startTime;
@@ -119,7 +121,7 @@ public class HighlightPulse
 		oc.a = 1f;
 		outlineMaterial.SetColor(OutlineColorId, oc);
 		outlineMaterial.SetVector(OutlineCenterId, bounds.center);
-		outlineMaterial.SetFloat(OutlineWidthId, OutlineWidth * Mathf.Lerp(OutlineMinWidthFactor, 1f, pulse));
+		outlineMaterial.SetFloat(OutlineWidthId, Width * Mathf.Lerp(OutlineMinWidthFactor, 1f, pulse));
 
 		RenderParams rp = new RenderParams(outlineMaterial);
 		rp.layer = layer;

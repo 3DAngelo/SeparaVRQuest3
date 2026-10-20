@@ -1,7 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using Unity.XR.CoreUtils;
 using UnityEngine;
+using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Inputs;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
@@ -49,6 +51,10 @@ public class TutorialIntro : MonoBehaviour
 	// ---- logo: más chico después de la bienvenida ----
 	public const float EscalaLogoReducido = 0.6f;
 	public const float VelocidadLogo = 4f;
+
+	// ---- alineación del jugador al inicio (en modo Floor el yaw del casco depende del guardián de Quest) ----
+	public const float EsperaPoseMaxima = 2f;
+	public const int FramesEsperaPose = 3;
 
 	[Header("Objetos de práctica")]
 	public CustomGrabInteractable botella;
@@ -106,6 +112,12 @@ public class TutorialIntro : MonoBehaviour
 	}
 
 	private readonly List<Practica> practicas = new List<Practica>();
+
+	private XROrigin origen;
+	private Vector3 origenPosicionInicio;
+	private Vector3 origenForwardInicio;
+	private bool alineando;
+	private readonly List<XRInputSubsystem> subsistemasInput = new List<XRInputSubsystem>();
 
 	private void Awake()
 	{
@@ -186,15 +198,96 @@ public class TutorialIntro : MonoBehaviour
 		ActualizarModo();
 		ActualizarTexto();
 		StartCoroutine(Bienvenida());
+		IniciarAlineacion();
 	}
 
 	private void OnDestroy()
 	{
+		DesuscribirRecentrado();
 		if (pulsoAyuda != null)
 		{
 			pulsoAyuda.Dispose();
 			pulsoAyuda = null;
 		}
+	}
+
+	// ---------------------------------------------------------------- alineación del jugador
+
+	// Guarda dónde está diseñado el XR Origin, se suscribe al recentrado del sistema y alinea una primera vez.
+	private void IniciarAlineacion()
+	{
+		origen = FindFirstObjectByType<XROrigin>();
+		if (origen == null || origen.Camera == null)
+		{
+			return;
+		}
+		origenPosicionInicio = origen.transform.position;
+		origenForwardInicio = Vector3.ProjectOnPlane(origen.transform.forward, Vector3.up);
+		SubsystemManager.GetSubsystems(subsistemasInput);
+		foreach (XRInputSubsystem subsistema in subsistemasInput)
+		{
+			subsistema.trackingOriginUpdated -= OnOrigenRecentrado;
+			subsistema.trackingOriginUpdated += OnOrigenRecentrado;
+		}
+		StartCoroutine(Alinear());
+	}
+
+	private void DesuscribirRecentrado()
+	{
+		foreach (XRInputSubsystem subsistema in subsistemasInput)
+		{
+			if (subsistema != null)
+			{
+				subsistema.trackingOriginUpdated -= OnOrigenRecentrado;
+			}
+		}
+		subsistemasInput.Clear();
+	}
+
+	private void OnOrigenRecentrado(XRInputSubsystem subsistema)
+	{
+		if (!terminado && !alineando)
+		{
+			StartCoroutine(Alinear());
+		}
+	}
+
+	// Espera una pose válida de la cámara, gira el origen alrededor de la cámara (solo yaw) para que mire hacia los
+	// contenedores y lo traslada en horizontal para que la cámara quede donde estaba diseñado el origen. No toca la Y.
+	private IEnumerator Alinear()
+	{
+		alineando = true;
+		Transform camara = origen.Camera.transform;
+		float limite = Time.unscaledTime + EsperaPoseMaxima;
+		for (int frames = 0; frames < FramesEsperaPose || (camara.localPosition == Vector3.zero && camara.localRotation == Quaternion.identity && Time.unscaledTime < limite); frames++)
+		{
+			yield return null;
+		}
+
+		Vector3 deseada = origenForwardInicio;
+		if (naranja != null && verde != null)
+		{
+			deseada = (naranja.transform.position + verde.transform.position) * 0.5f - origenPosicionInicio;
+		}
+		else if (naranja != null || verde != null)
+		{
+			deseada = (naranja != null ? naranja : verde).transform.position - origenPosicionInicio;
+		}
+		deseada = Vector3.ProjectOnPlane(deseada, Vector3.up);
+		Vector3 actual = Vector3.ProjectOnPlane(camara.forward, Vector3.up);
+		if (deseada.sqrMagnitude < 1e-4f)
+		{
+			deseada = origenForwardInicio.sqrMagnitude > 1e-4f ? origenForwardInicio : Vector3.forward;
+		}
+		if (actual.sqrMagnitude > 1e-4f)
+		{
+			// Gira solo sobre el eje Y alrededor de la cámara (la cámara no se mueve).
+			origen.RotateAroundCameraUsingOriginUp(Vector3.SignedAngle(actual, deseada, Vector3.up));
+		}
+		Vector3 desplazamiento = origenPosicionInicio - camara.position;
+		desplazamiento.y = 0f;
+		origen.transform.position += desplazamiento;
+		alineando = false;
 	}
 
 	// ---------------------------------------------------------------- pasos

@@ -29,6 +29,8 @@ public class CustomGrabInteractable : XRGrabInteractable
 
 	// Outline colour (neutral).
 	public static readonly Color HoverOutlineColor = Color.white;
+	// Grosor del outline del objeto en unidades de mundo (metros).
+	public const float HoverOutlineWidth = 0.005f;
 	// Multiplier of the object's own base colour at the bottom / top of the pulse (1 = unchanged).
 	public const float HoverMinBrightness = 1.0f;
 	public const float HoverMaxBrightness = 1.15f;
@@ -286,6 +288,7 @@ public class CustomGrabInteractable : XRGrabInteractable
 	{
 		hoverRenderers = GetComponentsInChildren<MeshRenderer>();
 		hoverPulse = new HighlightPulse("Grabbable " + name, HoverOutlineColor);
+		hoverPulse.Width = HoverOutlineWidth;
 		DisableAffordanceTint();
 		UpdateHoverHighlight();
 	}

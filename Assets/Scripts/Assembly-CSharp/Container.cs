@@ -52,7 +52,7 @@ public class Container : XRBaseInteractable
 	public const float PulseMinEmission = 0.03f;
 	public const float PulseMaxEmission = 0.12f;
 	// Outline thickness in world units (metres), constant at any distance.
-	public const float OutlineWidth = HighlightPulse.OutlineWidth;
+	public const float OutlineWidth = 0.01f;
 	// The outline breathes a little too: width and brightness factors at the bottom of the pulse (top = 1).
 	public const float OutlineMinWidthFactor = HighlightPulse.OutlineMinWidthFactor;
 	public const float OutlineMinBrightness = HighlightPulse.OutlineMinBrightness;
@@ -225,6 +225,7 @@ public class Container : XRBaseInteractable
 		}
 
 		pulse = new HighlightPulse("Container " + name, outlineColor);
+		pulse.Width = OutlineWidth;
 	}
 
 	private void SetHighlighted(bool value)
