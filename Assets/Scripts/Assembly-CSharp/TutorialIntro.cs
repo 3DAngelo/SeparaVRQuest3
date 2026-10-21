@@ -502,6 +502,8 @@ public class TutorialIntro : MonoBehaviour
 			objeto.transform.Rotate(GiroArrojar * Time.deltaTime);
 			yield return null;
 		}
+		// Solo se llega aquí con el contenedor correcto: fuegos artificiales de su color al caer el objeto.
+		FeedbackFX.PlayFireworks(contenedor);
 		objeto.gameObject.SetActive(false);
 		yield return new WaitForSeconds(EsperaCerrarTapa);
 		if (tapa != null)

@@ -200,21 +200,32 @@ public class Container : XRBaseInteractable
 
 	// ---------------------------------------------------------------- highlight: softly pulsing own material + coloured outline (HighlightPulse)
 
-	private void CreateHighlightResources()
+	/// <summary>The container's own colour (orange / green): highlight pulse and deposit fireworks (FeedbackFX).</summary>
+	public Color HighlightColor
+	{
+		get
+		{
+			return pulse != null ? outlineColor : ChooseOutlineColor();   // (before Start, or in edit mode)
+		}
+	}
+
+	private Color ChooseOutlineColor()
 	{
 		string id = (name + " " + descripcion).ToLowerInvariant();
 		if (id.Contains("naranja"))
 		{
-			outlineColor = OutlineOrange;
+			return OutlineOrange;
 		}
-		else if (id.Contains("verde"))
+		if (id.Contains("verde"))
 		{
-			outlineColor = OutlineGreen;
+			return OutlineGreen;
 		}
-		else
-		{
-			outlineColor = IDcontainer == Type.RECYCLE ? OutlineOrange : OutlineGreen;
-		}
+		return IDcontainer == Type.RECYCLE ? OutlineOrange : OutlineGreen;
+	}
+
+	private void CreateHighlightResources()
+	{
+		outlineColor = ChooseOutlineColor();
 
 		// One private copy per container, so that pulsing never touches the material asset. Based on the container's own
 		// look (without a default material only the outline is shown).

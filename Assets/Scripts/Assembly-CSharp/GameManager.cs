@@ -177,6 +177,8 @@ public class GameManager : MonoBehaviour
 			residuo.Rotate(Time.fixedDeltaTime * 200f, Time.fixedDeltaTime * 400f, Time.fixedDeltaTime * 100f);
 			yield return new WaitForFixedUpdate();
 		}
+		// Right container (only right releases get here): celebrate with fireworks in its colour as the object lands.
+		FeedbackFX.PlayFireworks(container);
 		CheckEvolve();
 		// Then it just drops into the container (straight down, no collisions) and disappears.
 		body.isKinematic = false;

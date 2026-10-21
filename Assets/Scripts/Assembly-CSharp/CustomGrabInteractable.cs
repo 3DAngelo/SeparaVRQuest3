@@ -240,6 +240,8 @@ public class CustomGrabInteractable : XRGrabInteractable
 					}
 				}
 				StartCoroutine(TossToward(currentTargetContainer.AimPoint));
+				// No celebration: just a small grey puff where it was let go.
+				FeedbackFX.PlayWrongPuff(transform.position);
 			}
 		}
 		currentTargetContainer = null;
@@ -337,12 +339,51 @@ public class CustomGrabInteractable : XRGrabInteractable
 	protected override void OnDisable()
 	{
 		SetHoverHighlighted(false);
+		UpdateSparkles();   // (no longer active and enabled: stops)
 		base.OnDisable();
 	}
 
 	private void UpdateHoverHighlight()
 	{
 		SetHoverHighlighted(isHovered && !isSelected && !dumped && isActiveAndEnabled);
+		UpdateSparkles();
+	}
+
+	// ---------------------------------------------------------------- sparkles rising from the pointed / held object (FeedbackFX)
+
+	private ParticleSystem sparkles;
+	private bool sparkling;
+
+	private void UpdateSparkles()
+	{
+		bool value = (isHovered || isSelected) && !dumped && isActiveAndEnabled && hoverRenderers != null;
+		if (value && sparkles == null)
+		{
+			sparkles = FeedbackFX.CreateSparkles(name);
+		}
+		if (sparkles == null)
+		{
+			return;
+		}
+		if (value)
+		{
+			// Fewer while held: it is then right in front of the face.
+			FeedbackFX.SetSparkleRate(sparkles, isSelected ? FeedbackFX.SparkleRateHeld : FeedbackFX.SparkleRateHovered);
+			FeedbackFX.FollowSparkles(sparkles, hoverRenderers);
+		}
+		if (value == sparkling)
+		{
+			return;
+		}
+		sparkling = value;
+		if (value)
+		{
+			sparkles.Play();
+		}
+		else
+		{
+			sparkles.Stop(true, ParticleSystemStopBehavior.StopEmitting);   // the ones already out finish rising
+		}
 	}
 
 	/// <summary>
@@ -467,6 +508,10 @@ public class CustomGrabInteractable : XRGrabInteractable
 		{
 			UpdateHoverPulse();
 		}
+		if (sparkling)
+		{
+			FeedbackFX.FollowSparkles(sparkles, hoverRenderers);
+		}
 	}
 
 	private void UpdateHoverPulse()
@@ -489,6 +534,11 @@ public class CustomGrabInteractable : XRGrabInteractable
 			copy.Destroy();
 		}
 		pulseCopies.Clear();
+		if (sparkles != null)
+		{
+			Destroy(sparkles.gameObject);
+			sparkles = null;
+		}
 		if (hoverPulse != null)
 		{
 			hoverPulse.Dispose();
