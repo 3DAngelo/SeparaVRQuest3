@@ -70,6 +70,18 @@ public class CustomGrabInteractable : XRGrabInteractable
 
 	private FlyInPose flyInPose;
 
+	/// <summary>True while this object, just grabbed, is flying from where it was to the hand (FlyInPose).</summary>
+	public bool IsFlyingToHand
+	{
+		get { return isSelected && flyInPose != null && flyInPose.Flying; }
+	}
+
+	/// <summary>True once released into the right container (it then flies in and is destroyed).</summary>
+	public bool IsDumped
+	{
+		get { return dumped; }
+	}
+
 	/// <summary>
 	/// On grab, the object travels from where it was to the hand in <see cref="FlyInTime"/> seconds (eased), instead of
 	/// snapping there. Objects already within <see cref="FlyInMinDistance"/> of their hold pose are not slowed down.
@@ -83,6 +95,12 @@ public class CustomGrabInteractable : XRGrabInteractable
 		private float startTime;
 		private bool flying;
 		private bool started;
+
+		/// <summary>True while the grabbed object is travelling to the hand (read by HandBeamFX).</summary>
+		public bool Flying
+		{
+			get { return flying; }
+		}
 
 		public bool canProcess
 		{

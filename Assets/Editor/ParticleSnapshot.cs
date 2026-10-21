@@ -29,6 +29,13 @@ public static class ParticleSnapshot
 	private static readonly Vector3 HandOffset = new Vector3(0.2f, -0.38f, 0.3f);
 	// Fireworks frames (seconds after the deposit): early, peak, fading.
 	private static readonly float[] FireworksTimes = { 0.15f, 0.5f, 1.1f };
+	// Beam shots: the hand swept this far (deg, to the right) while the lazy end still lags on the residuo; how far along
+	// its flight to the hand the grabbed residuo is (0..1, before easing); how far above the horizon the "aim up" shot
+	// points (deg); frames in the flow exposure.
+	private const float LagYaw = 10f;
+	private const float FlightFraction = 0.5f;
+	private const float UpPitch = 15f;
+	private const int ExposureFrames = 8;
 
 	[MenuItem("Tools/SeparaVR/Particle snapshot (PNG)")]
 	private static void RunFromMenu()
@@ -55,6 +62,8 @@ public static class ParticleSnapshot
 
 		List<UnityEngine.Object> temporary = new List<UnityEngine.Object>();
 		RigPose rig = null;
+		Transform movedGrab = null;
+		Vector3 movedGrabPosition = Vector3.zero;
 		List<Texture2D> tiles = new List<Texture2D>();
 		List<string> names = new List<string>();
 		GameObject cameraObject = new GameObject("ParticleSnapshotCamera");
@@ -79,65 +88,164 @@ public static class ParticleSnapshot
 				Vector3 aimPoint = eye + camera.transform.right * HandOffset.x + Vector3.up * HandOffset.y + Flat(camera.transform.forward) * HandOffset.z;
 
 				// The rig's own right hand, posed like a tracked hand pointing at the object: its Aim Pose (the cast origin
-				// XRI uses) at aimPoint, pointing at the object; the hand mesh around it (index knuckle at the aim
-				// origin, fingers along the ray). The rest of the rig (other hand, controllers, pinch / poke visuals) is
-				// hidden: in edit mode it all sits at the rig's rest pose, i.e. inside the camera.
+				// XRI uses) at aimPoint; the hand mesh moves rigidly with it. The rest of the rig (other hand, controllers,
+				// pinch / poke visuals) is hidden: in edit mode it all sits at the rig's rest pose, i.e. inside the camera.
 				rig = PoseRightHand(aimPoint, bounds.center);
 				Vector3 origin = rig.AimOrigin;
-				Vector3 dir = rig.AimDirection;
-				float distance = Vector3.Distance(origin, bounds.center);
-				Log("aim origin " + origin.ToString("F3") + " dir " + dir.ToString("F2") + " from '" + rig.Source + "', distance " + distance.ToString("F2"));
+				Vector3 localCenter = HandBeamFX.LocalCenter(grab);
+				Vector3 center = grab.transform.TransformPoint(localCenter);
+				float groundY = GroundY();
+				Log("aim origin " + origin.ToString("F3") + " from '" + rig.Source + "', residuo centre " + center.ToString("F3") + " min y " + bounds.min.y.ToString("F3") + ", ground (XR Origin) y " + groundY.ToString("F3"));
 
+				// Rule check, exactly as HandBeamFX calls it: pointing at the residuo (the XRI ray hits it).
+				Vector3 ruleEnd;
+				bool ruleResiduo = HandBeamFX.AimsAtSidewalk(origin, (center - origin).normalized, groundY, true, center, true, out ruleEnd);
+				Log("rule: aim at residuo -> " + (ruleResiduo ? "BEAM ON" : "off"));
+
+				// ---- 1a. choosing: the hand has just swept LagYaw degrees to the right, the lazy end still on the residuo ----
+				Vector3 toResiduo = (center - origin).normalized;
+				rig.Point(origin, origin + Quaternion.AngleAxis(LagYaw, Vector3.up) * toResiduo);
 				ParticleSystem beam = FeedbackFX.CreateBeam(null);
 				temporary.Add(beam.gameObject);
 				LineRenderer core = FeedbackFX.BeamCore(beam);
-				FeedbackFX.PlaceBeam(beam, core, origin, dir, Mathf.Min(distance, FeedbackFX.BeamMaxLength), 1f);
+				SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, center, 1f, 2f, true);
 
 				ParticleSystem sparkles = FeedbackFX.CreateSparkles(grab.name);
 				temporary.Add(sparkles.gameObject);
 				FeedbackFX.FollowSparkles(sparkles, grab.GetComponentsInChildren<MeshRenderer>());
-
-				beam.Simulate(2f, true, true);
 				sparkles.Simulate(2f, true, true);
 				Log("beam particles " + beam.particleCount + ", sparkles " + sparkles.particleCount + ", core " + (core != null && core.enabled));
 
 				Texture2D full = Render(camera);
 				Save(full, Path.Combine(outDir, tag + "_player_beam_full.png"));
-				// Crop: from the hand to a bit above the object.
 				Bounds view = bounds;
 				view.Encapsulate(origin);
 				view.Encapsulate(rig.HandBounds);
 				view.Encapsulate(bounds.center + Vector3.up * 0.3f);
 				Texture2D crop = Crop(full, CropRect(camera, view), 1200);
 				Save(crop, Path.Combine(outDir, tag + "_player_beam_crop.png"));
-				Add(tiles, names, crop, "player view: beam + hover sparkles");
-				// The beam leaving the hand, same frame: the hand and the first ~0.8 m of the ray.
+				Add(tiles, names, crop, "choosing: curved beam to the residuo (hand swept " + LagYaw + " deg, end lagging)");
 				Bounds near = rig.HandBounds;
-				near.Encapsulate(origin + dir * 0.8f);
+				near.Encapsulate(origin + rig.AimDirection * 0.8f);
 				Texture2D handCrop = Crop(full, CropRect(camera, near), 1200);
 				Save(handCrop, Path.Combine(outDir, tag + "_beam_hand_crop.png"));
-				Add(tiles, names, handCrop, "beam leaving the hand (player view)");
+				Add(tiles, names, handCrop, "beam at the hand (player view)");
 				UnityEngine.Object.DestroyImmediate(full);
 
-				// Side close-up of the beam leaving the hand (a second camera position, ~0.45 m to the right of the ray).
-				Vector3 side = Vector3.Cross(Vector3.up, dir).normalized;
-				camera.transform.position = origin + side * 0.42f + Vector3.up * 0.08f + dir * 0.1f;
-				camera.transform.LookAt(origin + dir * 0.3f);
+				// ---- 1b. side view of the whole beam (the curve), and the flow toward the hand ----
+				Vector3 mid = Vector3.Lerp(origin, center, 0.5f);
+				Vector3 side = Vector3.Cross(Vector3.up, Flat(center - origin)).normalized;
+				Bounds whole = new Bounds(origin, Vector3.zero);   // the beam only: aim origin to the residuo
+				whole.Encapsulate(bounds);
+				whole.Expand(0.12f);
+				float sideDistance = Mathf.Max(1.5f, Vector3.Distance(origin, center) * 1.1f);   // far enough to fit it all
+				camera.transform.position = mid + side * sideDistance + Vector3.up * 0.2f;
+				camera.transform.LookAt(mid);
 				Texture2D sideShot = Render(camera);
-				Bounds sideView = rig.HandBounds;
-				sideView.Encapsulate(origin + dir * 0.75f);
-				Texture2D sideCrop = Crop(sideShot, CropRect(camera, sideView), 1200);
-				Save(sideCrop, Path.Combine(outDir, tag + "_beam_hand_side.png"));
-				Add(tiles, names, sideCrop, "beam leaving the hand (side)");
+				RectInt sideRect = CropRect(camera, whole);
+				Texture2D sideCrop = Crop(sideShot, sideRect, 1200);
+				Save(sideCrop, Path.Combine(outDir, tag + "_beam_side.png"));
+				Add(tiles, names, sideCrop, "choosing: side view (curve)");
 				UnityEngine.Object.DestroyImmediate(sideShot);
-				rig.HideHand();   // the later shots are about the object / containers
-				// Same player frame without the hand mesh (tells the hand's own pixels from the scene's).
+
+				// Flow evidence, same side camera: two frames 0.08 s apart, and an "exposure" of 8 frames 0.02 s apart
+				// where older frames are dimmer: each light leaves a fading trail behind it, bright head toward the hand.
+				Texture2D flowA = Crop(Render(camera), sideRect, 1200);
+				SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, center, 1f, 0.08f, false);
+				Texture2D flowB = Crop(Render(camera), sideRect, 1200);
+				Save(flowA, Path.Combine(outDir, tag + "_flow_a.png"));
+				Save(flowB, Path.Combine(outDir, tag + "_flow_b.png"));
+				Add(tiles, names, flowA, "flow frame A");
+				Add(tiles, names, flowB, "flow frame B (+0.08 s)");
+				List<Texture2D> exposure = new List<Texture2D>();
+				for (int k = 0; k < ExposureFrames; k++)
+				{
+					SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, center, 1f, 0.02f, false);
+					Texture2D frameShot = Render(camera);
+					exposure.Add(Crop(frameShot, sideRect, 1200));
+					UnityEngine.Object.DestroyImmediate(frameShot);
+				}
+				Texture2D trails = Exposure(exposure);
+				Save(trails, Path.Combine(outDir, tag + "_flow_exposure.png"));
+				Add(tiles, names, trails, "flow exposure (trails; heads point to the hand)");
+				foreach (Texture2D e in exposure)
+				{
+					UnityEngine.Object.DestroyImmediate(e);
+				}
+
+				// ---- 1c. pulling: the residuo grabbed and halfway on its flight to the hand, the beam shortened to it ----
+				sparkles.gameObject.SetActive(false);
+				rig.Point(origin, center);   // the hand still points where it grabbed
+				Vector3 holdCenter = rig.AimOrigin + rig.AimDirection * 0.14f + Vector3.down * 0.03f;
+				Vector3 flyingCenter = Vector3.Lerp(center, holdCenter, Mathf.SmoothStep(0f, 1f, FlightFraction));
+				movedGrab = grab.transform;
+				movedGrabPosition = grab.transform.position;
+				grab.transform.position += flyingCenter - center;
+				Vector3 tip = grab.transform.TransformPoint(localCenter);
+				SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, center, 1f, 2f, true);   // the stream as it was...
+				SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, tip, 1f, 0.25f, false);  // ...then 0.25 s of flight
+				Log("pulling: tip " + tip.ToString("F3") + " (" + Vector3.Distance(rig.AimOrigin, tip).ToString("F2") + " m from the hand), particles " + beam.particleCount);
 				camera.transform.position = eye;
-				camera.transform.LookAt(Vector3.Lerp(eye, bounds.center, 0.75f));
+				camera.transform.LookAt(Vector3.Lerp(eye, center, 0.75f));
+				Texture2D pull = Render(camera);
+				Texture2D pullCrop = Crop(pull, CropRect(camera, view), 1200);
+				Save(pullCrop, Path.Combine(outDir, tag + "_pull_player.png"));
+				Add(tiles, names, pullCrop, "pulling: mid-flight, beam ends at the residuo");
+				UnityEngine.Object.DestroyImmediate(pull);
+				camera.transform.position = mid + side * sideDistance + Vector3.up * 0.2f;
+				camera.transform.LookAt(mid);
+				Texture2D pullSide = Render(camera);
+				Texture2D pullSideCrop = Crop(pullSide, sideRect, 1200);
+				Save(pullSideCrop, Path.Combine(outDir, tag + "_pull_side.png"));
+				Add(tiles, names, pullSideCrop, "pulling: side view");
+				UnityEngine.Object.DestroyImmediate(pullSide);
+				movedGrab.position = movedGrabPosition;
+				movedGrab = null;
+
+				// ---- 1d. pointing at the bare sidewalk (no residuo hit): rule on, the beam ends on the ground ----
+				Vector3 groundAim = new Vector3(center.x, groundY, center.z) - side * 0.7f + Flat(center - origin).normalized * 0.4f;
+				rig.Point(origin, groundAim);
+				Vector3 groundEnd;
+				Physics.SyncTransforms();
+				float surfaceY = HandBeamFX.SurfaceY(rig.AimOrigin, rig.AimDirection, groundY);   // as HandBeamFX does
+				Log("sidewalk surface under the aim: y " + surfaceY.ToString("F3") + " (XR Origin floor " + groundY.ToString("F3") + ")");
+				bool ruleGround = HandBeamFX.AimsAtSidewalk(rig.AimOrigin, rig.AimDirection, surfaceY, false, Vector3.zero, false, out groundEnd);
+				Log("rule: aim at bare sidewalk -> " + (ruleGround ? "BEAM ON" : "off") + ", end " + groundEnd.ToString("F2"));
+				SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, groundEnd, ruleGround ? 1f : 0f, 2f, true);
+				camera.transform.position = eye;
+				camera.transform.LookAt(Vector3.Lerp(eye, center, 0.75f));
 				Texture2D bare = Render(camera);
-				Texture2D bareCrop = Crop(bare, CropRect(camera, view), 1200);
-				Save(bareCrop, Path.Combine(outDir, tag + "_player_beam_nohand.png"));
+				Bounds bareView = view;
+				bareView.Encapsulate(groundEnd);
+				Texture2D bareCrop = Crop(bare, CropRect(camera, bareView), 1200);
+				Save(bareCrop, Path.Combine(outDir, tag + "_aim_sidewalk.png"));
+				Add(tiles, names, bareCrop, "aim at bare sidewalk: rule " + (ruleGround ? "ON" : "off"));
 				UnityEngine.Object.DestroyImmediate(bare);
+
+				// ---- 1e. pointing above the horizon (buildings / sky): rule off, no beam ----
+				Vector3 upAim = Quaternion.AngleAxis(-UpPitch, Vector3.Cross(Vector3.up, Flat(center - origin)).normalized) * Flat(center - origin).normalized;
+				rig.Point(origin, origin + upAim);
+				Vector3 upEnd;
+				bool ruleUp = HandBeamFX.AimsAtSidewalk(rig.AimOrigin, rig.AimDirection, groundY, false, Vector3.zero, false, out upEnd);
+				Log("rule: aim " + UpPitch + " deg above the horizon (dir " + rig.AimDirection.ToString("F2") + ") -> " + (ruleUp ? "BEAM ON" : "off"));
+				SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, ruleUp ? upEnd : rig.AimOrigin + rig.AimDirection * 3f, ruleUp ? 1f : 0f, 2f, true);
+				if (!ruleUp)
+				{
+					beam.Clear(true);   // as HandBeamFX does once faded out
+				}
+				camera.transform.position = eye;
+				camera.transform.LookAt(eye + Flat(center - eye).normalized * 3f + Vector3.up * 0.3f);
+				Texture2D up = Render(camera);
+				Save(up, Path.Combine(outDir, tag + "_aim_up_full.png"));
+				Bounds upView = rig.HandBounds;
+				upView.Encapsulate(rig.AimOrigin + rig.AimDirection * 2.5f);
+				upView.Expand(0.3f);
+				Texture2D upCrop = Crop(up, CropRect(camera, upView), 1200);
+				Save(upCrop, Path.Combine(outDir, tag + "_aim_up.png"));
+				Add(tiles, names, upCrop, "aim above horizon: rule " + (ruleUp ? "ON" : "off (no beam)"));
+				UnityEngine.Object.DestroyImmediate(up);
+				rig.HideHand();   // the later shots are about the object / containers
+				sparkles.gameObject.SetActive(true);
 
 				// ---- 2. close-up of the object with its sparkles (about 0.8 m away, a bit from above) ----
 				beam.gameObject.SetActive(false);
@@ -227,6 +335,10 @@ public static class ParticleSnapshot
 			if (rig != null)
 			{
 				rig.Restore();
+			}
+			if (movedGrab != null)
+			{
+				movedGrab.position = movedGrabPosition;
 			}
 			foreach (UnityEngine.Object o in temporary)
 			{
@@ -324,6 +436,7 @@ public static class ParticleSnapshot
 		public Bounds HandBounds;
 		public string Source = "harness (no rig hand found)";
 		public Transform Hand;
+		public Transform Aim;
 		public Vector3 HandPosition;
 		public Quaternion HandRotation;
 		public readonly List<Renderer> Shown = new List<Renderer>();
@@ -337,6 +450,45 @@ public static class ParticleSnapshot
 				{
 					r.enabled = false;
 				}
+			}
+		}
+
+		/// <summary>Turns the posed hand (rigidly, as PoseRightHand) so its Aim Pose is at aimPoint looking at target.</summary>
+		public void Point(Vector3 aimPoint, Vector3 target)
+		{
+			Vector3 dir = (target - aimPoint).normalized;
+			if (Hand == null || Aim == null)
+			{
+				AimOrigin = aimPoint;
+				AimDirection = dir;
+				HandBounds = new Bounds(aimPoint, Vector3.one * 0.15f);
+				return;
+			}
+			Quaternion delta = Quaternion.LookRotation(dir, Vector3.up) * Quaternion.Inverse(Aim.rotation);
+			Vector3 newPosition = aimPoint + delta * (Hand.position - Aim.position);
+			Hand.SetPositionAndRotation(newPosition, delta * Hand.rotation);
+			AimOrigin = Aim.position;
+			AimDirection = Aim.forward;
+			bool any = false;
+			foreach (Renderer r in Shown)
+			{
+				if (r == null || !r.gameObject.activeInHierarchy)
+				{
+					continue;
+				}
+				if (!any)
+				{
+					HandBounds = r.bounds;
+					any = true;
+				}
+				else
+				{
+					HandBounds.Encapsulate(r.bounds);
+				}
+			}
+			if (!any)
+			{
+				HandBounds = new Bounds(AimOrigin, Vector3.one * 0.15f);
 			}
 		}
 
@@ -410,6 +562,7 @@ public static class ParticleSnapshot
 		}
 
 		pose.Hand = hand;
+		pose.Aim = aim;
 		pose.HandPosition = hand.position;
 		pose.HandRotation = hand.rotation;
 		Quaternion delta = desired * Quaternion.Inverse(aim.rotation);
@@ -462,6 +615,68 @@ public static class ParticleSnapshot
 		}
 		Log("rig hand moved: '" + PathOf(hand) + "', aim offset from hand root " + (hand.position - pose.AimOrigin).ToString("F3") + ", hidden renderers " + (pose.Saved.Count - pose.Shown.Count));
 		return pose;
+	}
+
+	/// <summary>Places the beam on its curve, advances it by <paramref name="seconds"/> (from scratch if restart), places it again.</summary>
+	private static void SimulateBeam(ParticleSystem beam, LineRenderer core, Vector3 origin, Vector3 aim, Vector3 end, float visibility, float seconds, bool restart)
+	{
+		FeedbackFX.PlaceBeam(beam, core, origin, aim, end, visibility);   // puts the emitter at the tip first
+		if (restart)
+		{
+			beam.Simulate(seconds, true, true);
+		}
+		else
+		{
+			// In small steps, re-placing the lights every step (as every frame at run time).
+			float left = seconds;
+			while (left > 1e-4f)
+			{
+				float step = Mathf.Min(0.02f, left);
+				beam.Simulate(step, true, false);
+				FeedbackFX.PlaceBeam(beam, core, origin, aim, end, visibility);
+				left -= step;
+			}
+		}
+		FeedbackFX.PlaceBeam(beam, core, origin, aim, end, visibility);
+	}
+
+	/// <summary>"Long exposure": per pixel maximum of the frames, the older ones dimmer (frame k of n weighted (k+1)/n).</summary>
+	private static Texture2D Exposure(List<Texture2D> frames)
+	{
+		Texture2D first = frames[0];
+		Color[] result = new Color[first.width * first.height];
+		for (int k = 0; k < frames.Count; k++)
+		{
+			float w = (k + 1f) / frames.Count;
+			Color[] px = frames[k].GetPixels();
+			if (px.Length != result.Length)
+			{
+				continue;
+			}
+			for (int i = 0; i < px.Length; i++)
+			{
+				Color c = px[i] * w;
+				Color r = result[i];
+				result[i] = new Color(Mathf.Max(r.r, c.r), Mathf.Max(r.g, c.g), Mathf.Max(r.b, c.b), 1f);
+			}
+		}
+		// The scene itself is in every frame: keep the latest frame where nothing moved (no dimmed background).
+		Color[] last = frames[frames.Count - 1].GetPixels();
+		for (int i = 0; i < result.Length && i < last.Length; i++)
+		{
+			result[i] = new Color(Mathf.Max(result[i].r, last[i].r), Mathf.Max(result[i].g, last[i].g), Mathf.Max(result[i].b, last[i].b), 1f);
+		}
+		Texture2D tex = new Texture2D(first.width, first.height, TextureFormat.RGBA32, false);
+		tex.SetPixels(result);
+		tex.Apply();
+		return tex;
+	}
+
+	/// <summary>The floor height HandBeamFX uses: the XR Origin's origin, or 0.</summary>
+	private static float GroundY()
+	{
+		Unity.XR.CoreUtils.XROrigin xr = UnityEngine.Object.FindFirstObjectByType<Unity.XR.CoreUtils.XROrigin>(FindObjectsInactive.Include);
+		return xr != null && xr.Origin != null ? xr.Origin.transform.position.y : 0f;
 	}
 
 	/// <summary>Logs the mesh renderers on the floor around the player (what could draw floor-textured bands).</summary>

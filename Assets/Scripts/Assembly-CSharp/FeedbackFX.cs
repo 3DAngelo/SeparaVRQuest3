@@ -4,7 +4,7 @@ using UnityEngine.Rendering;
 
 /// <summary>
 /// Particle feedback, all built in code at run time (no prefabs, no scene set-up):
-///  - Hand beam: a soft stream of light flowing along the aim ray of each Near-Far Interactor (see HandBeamFX).
+///  - Hand beam: a soft curved "tractor beam" from the hand to the residuo being chosen, lights flowing toward the hand (see HandBeamFX).
 ///  - Sparkles: little sparks and lights rising about 20 cm from the pointed / held object (see CustomGrabInteractable).
 ///  - Fireworks: a burst in the container's colour when an object lands in the right container (GameManager /
 ///    TutorialIntro), and a small grey puff when an object is released over the wrong one.
@@ -26,46 +26,65 @@ public static class FeedbackFX
 	public const float Intensity = 1.5f;
 
 	// ---------------------------------------------------------------- hand beam (HandBeamFX)
+	// A "tractor beam": a soft, slightly curved stream of light from the hand to the residuo being chosen, with little
+	// lights flowing FROM the tip TOWARD the hand. When it shows is decided by HandBeamFX (choosing a residuo on the
+	// sidewalk, and while the grabbed residuo flies to the hand).
 
-	// Speed of the light flowing from the hand along the ray (m/s).
-	public const float BeamSpeed = 2.6f;
+	// Shape, like the stock XRI ray line (CurveUtility.TryGenerateCubicBezierCurve): a quadratic Bezier from the hand to
+	// the end point whose control point is origin + aim direction * length * BeamCurveRatio (XRI's default bend ratio is
+	// 0.5). The end point lags behind the aim (HandBeamFX smooths it), so when the hand moves the line bends lazily.
+	public const float BeamCurveRatio = 0.5f;
+	// Extra soft sag of the control point, downward, as a fraction of the length: a gentle arc even with a still hand.
+	public const float BeamSag = 0.07f;
+	// Points of the core line along the curve.
+	public const int BeamCurvePoints = 20;
+	// Speed of the lights flowing from the tip to the hand (m/s along the curve).
+	public const float BeamSpeed = 2.2f;
 	// Particles per second per hand.
 	public const float BeamRate = 90f;
 	// The stream starts this far in front of the aim origin, so it does not cover the hand itself.
 	public const float BeamStartOffset = 0.06f;
-	// Length when the ray hits nothing (and the cap when it hits something far away), metres.
+	// Longest beam (m); HandBeamFX does not show it toward anything farther.
 	public const float BeamMaxLength = 5f;
-	// Length while an object is held (the beam then points where the container is chosen).
-	public const float BeamHeldLength = 1.6f;
-	public const float BeamMinLength = 0.25f;
+	// Shorter than this (the residuo has arrived at the hand) nothing is drawn.
+	public const float BeamMinLength = 0.1f;
 	public const float BeamSizeMin = 0.018f;
 	public const float BeamSizeMax = 0.034f;
-	// The particles spiral gently around the ray: radius (m) and angular speed (rad/s) of the swirl.
+	// The lights spiral gently around the curve: radius (m) and angular speed (rad/s) of the swirl.
 	public const float BeamSwirlRadius = 0.007f;
 	public const float BeamSwirlSpeed = 6f;
 	// Pale sky blue to warm gold; alpha = how strong the stream is (it is additive, so it also dims it).
 	public static readonly Color BeamColorA = new Color(0.55f, 0.85f, 1f, 0.75f);
 	public static readonly Color BeamColorB = new Color(1f, 0.85f, 0.5f, 0.75f);
-	// Each particle is a short streak along the flow: stretched by its velocity times this (seconds).
+	// Each light is a short streak along the flow: stretched by its velocity times this (seconds).
 	public const float BeamStreak = 0.025f;
-	// Cap per hand: BeamRate * (BeamMaxLength / BeamSpeed) is about 175.
-	public const int BeamMaxParticles = 192;
+	// Fade of a light along its way, as fractions of the length (0 = tip, 1 = hand): in over the first BeamFlowFadeIn at
+	// the tip, out from BeamFlowFadeOutStart before it reaches the hand. And its size at the hand relative to the tip
+	// (they shrink a little while being pulled in).
+	public const float BeamFlowFadeIn = 0.06f;
+	public const float BeamFlowFadeOutStart = 0.8f;
+	public const float BeamFlowSizeAtHand = 0.6f;
+	// Cap per hand: BeamRate * (BeamMaxLength / BeamSpeed) is about 205.
+	public const int BeamMaxParticles = 224;
 
-	// Soft continuous core of the beam: one additive LineRenderer (2 points, camera facing) along the same ray, under the
-	// flowing particles, so the beam reads as a stream of light rather than a dotted trail. Its own small procedural
-	// texture gives a soft cross-section (bright thin centre, faint halo) and fades it in at the hand and out at the end.
-	// Width (m) at the hand and at the far end.
-	public const float BeamCoreWidthStart = 0.010f;
-	public const float BeamCoreWidthEnd = 0.005f;
-	// Colours at the hand / at the end (alpha = strength; additive, so this keeps it soft, not blinding).
-	public static readonly Color BeamCoreColorA = new Color(0.55f, 0.88f, 1f, 0.85f);
-	public static readonly Color BeamCoreColorB = new Color(1f, 0.86f, 0.5f, 0.6f);
-	// Fractions of the length over which the core fades in from the hand (short: it should leave the hand already lit;
-	// 0.03 of a 2.5 m ray is ~7 cm) and from where it fades out toward the end.
-	public const float BeamCoreFadeIn = 0.03f;
-	public const float BeamCoreFadeOutStart = 0.7f;
-	// How fast the core grows in / thins out when the beam is shown / hidden (1/s).
-	public const float BeamCoreFadeSpeed = 8f;
+	// Soft continuous core of the beam: one additive LineRenderer (BeamCurvePoints points, camera facing) along the same
+	// curve, under the flowing lights, so the beam reads as a stream of light rather than a dotted trail. Its own small
+	// procedural texture gives a soft cross-section (bright thin centre, faint halo) and fades it at both ends.
+	// Tractor look: thinner and warm at the hand, wider and brighter cyan at the tip (it pulls from there).
+	// Width (m) at the hand and at the tip.
+	public const float BeamCoreWidthStart = 0.006f;
+	public const float BeamCoreWidthEnd = 0.011f;
+	// Colours at the hand / at the tip (alpha = strength; additive, so this keeps it soft, not blinding).
+	public static readonly Color BeamCoreColorA = new Color(1f, 0.86f, 0.5f, 0.5f);
+	public static readonly Color BeamCoreColorB = new Color(0.55f, 0.9f, 1f, 0.95f);
+	// Fractions of the length (0 = hand, 1 = tip) over which the core fades in from the hand, and from where it fades
+	// out at the tip (short, so the tip stays bright).
+	public const float BeamCoreFadeIn = 0.06f;
+	public const float BeamCoreFadeOutStart = 0.94f;
+	// How fast the beam fades in / out when it is shown / hidden (1/s; 6 = about 0.17 s), and the quicker fade when the
+	// residuo arrives at the hand.
+	public const float BeamFadeSpeed = 6f;
+	public const float BeamArriveFadeSpeed = 12f;
 	// Replace the stock XRI ray line (CurveVisualController + LineRenderer on the Near-Far Interactor) with this beam, so
 	// there are not two lines on the same ray. It is restored if the beam cannot be made (no shader) or is removed.
 	public const bool BeamReplacesStockLine = true;
@@ -245,7 +264,14 @@ public static class FeedbackFX
 
 	// ---------------------------------------------------------------- hand beam
 
-	/// <summary>A new (stopped) beam under <paramref name="parent"/>; it flows along its local +Z. Null without material.</summary>
+	// Scratch buffers shared by every beam (main thread only; no per-frame allocations).
+	private static readonly Vector3[] beamCurve = new Vector3[BeamCurvePoints];
+	private static ParticleSystem.Particle[] beamParticles;
+
+	/// <summary>
+	/// A new (stopped) beam under <paramref name="parent"/>. Its particles live in world space and are placed on the curve
+	/// every frame by <see cref="PlaceBeam"/> (new ones start at the tip, where the system sits). Null without material.
+	/// </summary>
 	public static ParticleSystem CreateBeam(Transform parent)
 	{
 		ParticleSystem ps = NewSystem("Hand Beam FX", parent, BeamMaxParticles);
@@ -256,39 +282,14 @@ public static class FeedbackFX
 		ParticleSystem.MainModule main = ps.main;
 		main.loop = true;
 		main.duration = 1f;
-		main.simulationSpace = ParticleSystemSimulationSpace.Local;   // rigidly on the ray, no lag behind the hand
-		main.startSpeed = BeamSpeed;
-		main.startLifetime = BeamMaxLength / BeamSpeed;
+		main.simulationSpace = ParticleSystemSimulationSpace.World;
+		main.startSpeed = 0f;                                         // moved along the curve by FlowBeam, not by the system
+		main.startLifetime = BeamMaxLength / BeamSpeed + 0.2f;        // long enough for the longest beam; killed at the hand
 		main.startSize = new ParticleSystem.MinMaxCurve(BeamSizeMin, BeamSizeMax);
 		main.startColor = new ParticleSystem.MinMaxGradient(BeamColorA, BeamColorB);
 
 		ParticleSystem.EmissionModule emission = ps.emission;
 		emission.rateOverTime = BeamRate;
-
-		// Thin cone along +Z: the particles start on a ring of BeamSwirlRadius and fly straight ahead.
-		ParticleSystem.ShapeModule shape = ps.shape;
-		shape.enabled = true;
-		shape.shapeType = ParticleSystemShapeType.Cone;
-		shape.angle = 0f;
-		shape.radius = BeamSwirlRadius;
-		shape.radiusThickness = 0f;
-
-		// Orbit around the ray (local Z): a soft spiral.
-		ParticleSystem.VelocityOverLifetimeModule velocity = ps.velocityOverLifetime;
-		velocity.enabled = true;
-		velocity.space = ParticleSystemSimulationSpace.Local;
-		velocity.x = new ParticleSystem.MinMaxCurve(0f);
-		velocity.y = new ParticleSystem.MinMaxCurve(0f);
-		velocity.z = new ParticleSystem.MinMaxCurve(0f);
-		velocity.orbitalX = new ParticleSystem.MinMaxCurve(0f);
-		velocity.orbitalY = new ParticleSystem.MinMaxCurve(0f);
-		velocity.orbitalZ = new ParticleSystem.MinMaxCurve(BeamSwirlSpeed);
-
-		// Fade in near the hand, fade out at the far end.
-		SetAlphaOverLifetime(ps, 0f, 0.08f, 0.7f, 1f);
-		ParticleSystem.SizeOverLifetimeModule size = ps.sizeOverLifetime;
-		size.enabled = true;
-		size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.5f), new Keyframe(0.15f, 1f), new Keyframe(1f, 0.6f)));
 
 		ParticleSystemRenderer r = ps.GetComponent<ParticleSystemRenderer>();
 		r.renderMode = ParticleSystemRenderMode.Stretch;
@@ -296,22 +297,20 @@ public static class FeedbackFX
 		r.lengthScale = 1f;
 		SetTile(ps, false);
 
-		// The continuous core: first child of the beam, along its local +Z (from 0 to the length set by SetBeamLength).
+		// The continuous core: first child of the beam, world space points along the curve (set by PlaceBeam).
 		GameObject coreObject = new GameObject("Beam Core");
 		coreObject.transform.SetParent(ps.transform, false);
 		LineRenderer core = coreObject.AddComponent<LineRenderer>();
 		core.sharedMaterial = CoreMaterial;
-		core.useWorldSpace = false;
-		core.positionCount = 2;
-		core.SetPosition(0, Vector3.zero);
-		core.SetPosition(1, new Vector3(0f, 0f, BeamMaxLength));
+		core.useWorldSpace = true;
+		core.positionCount = BeamCurvePoints;
 		core.alignment = LineAlignment.View;
 		core.textureMode = LineTextureMode.Stretch;
 		core.numCapVertices = 0;
 		core.numCornerVertices = 0;
 		core.startWidth = BeamCoreWidthStart;
 		core.endWidth = BeamCoreWidthEnd;
-		core.widthMultiplier = 0f;   // grown in by SetBeamCore
+		core.widthMultiplier = 0f;   // grown in by PlaceBeam
 		core.startColor = BeamCoreColorA;
 		core.endColor = BeamCoreColorB;
 		core.shadowCastingMode = ShadowCastingMode.Off;
@@ -330,46 +329,131 @@ public static class FeedbackFX
 		return beam != null && beam.transform.childCount > 0 ? beam.transform.GetChild(0).GetComponent<LineRenderer>() : null;
 	}
 
-	/// <summary>Sets how far the beam reaches (from its own origin, i.e. already past BeamStartOffset).</summary>
-	public static void SetBeamLength(ParticleSystem beam, float length)
+	/// <summary>Point of the quadratic Bezier p0 - p1 - p2 at t (0 = p0, 1 = p2).</summary>
+	public static Vector3 Bezier(Vector3 p0, Vector3 p1, Vector3 p2, float t)
 	{
-		ParticleSystem.MainModule main = beam.main;
-		main.startLifetime = Mathf.Max(0.05f, length / BeamSpeed);
-	}
-
-	/// <summary>Sets the core line's length (m, from the beam origin) and visibility (0 = hidden .. 1 = full width).</summary>
-	public static void SetBeamCore(LineRenderer core, float length, float visibility)
-	{
-		if (core == null)
-		{
-			return;
-		}
-		bool visible = visibility > 0.001f;
-		if (core.enabled != visible)
-		{
-			core.enabled = visible;
-		}
-		if (visible)
-		{
-			core.widthMultiplier = visibility;
-			core.SetPosition(1, new Vector3(0f, 0f, Mathf.Max(0.01f, length)));
-		}
+		float s = 1f - t;
+		return s * s * p0 + 2f * s * t * p1 + t * t * p2;
 	}
 
 	/// <summary>
-	/// Puts a beam on a ray: it starts BeamStartOffset in front of <paramref name="origin"/> and flows along
-	/// <paramref name="direction"/> for <paramref name="length"/> metres (measured from the origin). Used both by HandBeamFX
-	/// (with the interactor's real ray origin / end point) and by the screenshot harness.
+	/// The beam's control points: from BeamStartOffset in front of <paramref name="origin"/> (the hand's aim origin) to
+	/// <paramref name="end"/>, bending like the XRI line: control point along <paramref name="aimDirection"/> at
+	/// BeamCurveRatio of the length, sagged down by BeamSag. Returns the straight distance p0 - p2.
 	/// </summary>
-	public static void PlaceBeam(ParticleSystem beam, LineRenderer core, Vector3 origin, Vector3 direction, float length, float coreVisibility)
+	public static float BeamControlPoints(Vector3 origin, Vector3 aimDirection, Vector3 end, out Vector3 p0, out Vector3 p1)
 	{
-		if (direction.sqrMagnitude > 1e-6f)
+		Vector3 dir = aimDirection.sqrMagnitude > 1e-6f ? aimDirection.normalized : Vector3.forward;
+		p0 = origin + dir * BeamStartOffset;
+		float chord = Vector3.Distance(p0, end);
+		p1 = p0 + dir * (chord * BeamCurveRatio) + Vector3.down * (chord * BeamSag);
+		return chord;
+	}
+
+	/// <summary>
+	/// Puts a beam on its curve (see <see cref="BeamControlPoints"/>) with the given visibility (0 = hidden .. 1 = full):
+	/// the core line along the curve, and every light flowing from the tip to the hand. Used both by HandBeamFX and by the
+	/// screenshot harness. Playing / stopping the emission is up to the caller.
+	/// </summary>
+	public static void PlaceBeam(ParticleSystem beam, LineRenderer core, Vector3 origin, Vector3 aimDirection, Vector3 end, float visibility)
+	{
+		Vector3 p0;
+		Vector3 p1;
+		float chord = BeamControlPoints(origin, aimDirection, end, out p0, out p1);
+		if (chord < BeamMinLength)
 		{
-			beam.transform.SetPositionAndRotation(origin + direction.normalized * BeamStartOffset, Quaternion.LookRotation(direction));
+			visibility = 0f;
 		}
-		float flow = Mathf.Max(0.01f, length - BeamStartOffset);
-		SetBeamLength(beam, flow);
-		SetBeamCore(core, flow, coreVisibility);
+		float length = 0f;
+		for (int i = 0; i < BeamCurvePoints; i++)
+		{
+			beamCurve[i] = Bezier(p0, p1, end, (float)i / (BeamCurvePoints - 1));
+			if (i > 0)
+			{
+				length += Vector3.Distance(beamCurve[i - 1], beamCurve[i]);
+			}
+		}
+		beam.transform.position = end;   // new lights are born at the tip
+		if (core != null)
+		{
+			bool visible = visibility > 0.001f;
+			if (core.enabled != visible)
+			{
+				core.enabled = visible;
+			}
+			if (visible)
+			{
+				core.widthMultiplier = visibility;
+				core.SetPositions(beamCurve);
+			}
+		}
+		FlowBeam(beam, p0, p1, end, length, visibility);
+	}
+
+	/// <summary>
+	/// Places every light of the beam on the curve by its age: a light born at the tip has travelled age * BeamSpeed toward
+	/// the hand; past the hand it is removed. So the stream follows the curve exactly, and shortens with it (a residuo
+	/// flying to the hand). Swirl, colour and size come from each light's own random seed (nothing stored per light).
+	/// </summary>
+	private static void FlowBeam(ParticleSystem beam, Vector3 p0, Vector3 p1, Vector3 p2, float length, float visibility)
+	{
+		int max = beam.main.maxParticles;
+		if (beamParticles == null || beamParticles.Length < max)
+		{
+			beamParticles = new ParticleSystem.Particle[max];   // once
+		}
+		int count = beam.GetParticles(beamParticles);
+		if (count == 0)
+		{
+			return;
+		}
+		float invLength = 1f / Mathf.Max(0.01f, length);
+		float swirlScale = Mathf.Clamp01(length / 0.5f);   // a very short beam (arriving) does not swirl wider than itself
+		Vector3 chordDir = (p2 - p0).sqrMagnitude > 1e-8f ? (p2 - p0).normalized : Vector3.forward;
+		for (int i = 0; i < count; i++)
+		{
+			ParticleSystem.Particle p = beamParticles[i];
+			float age = p.startLifetime - p.remainingLifetime;
+			float u = age * BeamSpeed * invLength;   // 0 = at the tip .. 1 = at the hand
+			if (u >= 1f)
+			{
+				p.remainingLifetime = 0f;   // reached the hand
+				p.startColor = new Color32(0, 0, 0, 0);
+				p.position = p0;
+				beamParticles[i] = p;
+				continue;
+			}
+			float t = 1f - u;   // Bezier parameter (0 = hand, 1 = tip)
+			Vector3 position = Bezier(p0, p1, p2, t);
+			Vector3 tangent = 2f * (1f - t) * (p1 - p0) + 2f * t * (p2 - p1);
+			tangent = tangent.sqrMagnitude > 1e-8f ? tangent.normalized : chordDir;
+			Vector3 a = Vector3.Cross(tangent, Vector3.up);
+			if (a.sqrMagnitude < 1e-4f)
+			{
+				a = Vector3.Cross(tangent, Vector3.right);
+			}
+			a.Normalize();
+			Vector3 b = Vector3.Cross(tangent, a);
+
+			uint seed = p.randomSeed;
+			float h1 = (seed & 0xFFFF) / 65535f;
+			float h2 = ((seed >> 16) & 0xFF) / 255f;
+			float h3 = ((seed >> 24) & 0xFF) / 255f;
+			float angle = h1 * 6.2831853f + age * BeamSwirlSpeed;
+			float radius = BeamSwirlRadius * (0.4f + 0.6f * h2) * swirlScale;
+			position += (a * Mathf.Cos(angle) + b * Mathf.Sin(angle)) * radius;
+
+			float fade = Mathf.SmoothStep(0f, 1f, u / BeamFlowFadeIn) * (1f - Mathf.SmoothStep(0f, 1f, (u - BeamFlowFadeOutStart) / (1f - BeamFlowFadeOutStart))) * visibility;
+			Color color = Color.Lerp(BeamColorA, BeamColorB, h3);
+			color.a *= fade;
+
+			p.position = position;
+			p.velocity = -tangent * BeamSpeed;   // toward the hand (also orients the streak)
+			p.startColor = color;
+			p.startSize = Mathf.Lerp(BeamSizeMin, BeamSizeMax, h1) * Mathf.Lerp(1f, BeamFlowSizeAtHand, u);
+			beamParticles[i] = p;
+		}
+		beam.SetParticles(beamParticles, count);
 	}
 
 	// ---------------------------------------------------------------- sparkles
@@ -830,7 +914,7 @@ public static class FeedbackFX
 
 	/// <summary>
 	/// The beam core texture: white rgb, alpha = soft cross-section (v: bright thin centre, faint halo) times the fade along
-	/// the line (u: fades in at the hand over BeamCoreFadeIn, fades out from BeamCoreFadeOutStart to the end).
+	/// the line (u: 0 = hand .. 1 = tip; fades in from the hand over BeamCoreFadeIn, fades out from BeamCoreFadeOutStart to the tip).
 	/// </summary>
 	private static Texture2D CreateCoreTexture()
 	{
