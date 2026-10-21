@@ -1,13 +1,19 @@
-// Outline of the highlighted container (see Container.cs, which draws it with Graphics.RenderMesh).
+// Outline of a highlighted object (see HighlightPulse.cs, which draws it with Graphics.RenderMesh).
 //
 // Technique, two passes over the same mesh:
 //  1. "Mask": the mesh as it is, invisible (ColorMask 0), marking its silhouette in the stencil buffer.
-//  2. "Outline": the mesh with every vertex pushed away, on screen, from the projected centre of the container by a
-//     constant width in WORLD units, drawn only where the stencil is NOT marked. So the colour can only appear around
-//     the real object, never on top of it (open bins, single-sided walls or transparent materials included).
+//  2. "Outline": the mesh with every vertex pushed away, on screen, from the projected centre of the object, drawn only
+//     where the stencil is NOT marked. So the colour can only appear around the real object, never on top of it (open
+//     bins, single-sided walls or transparent materials included).
 // It does not use the normals, so the hard edges of a box do not open gaps (a normal-extruded hull would split there).
 //
-// URP draws the SRPDefaultUnlit pass of a shader before its UniversalForward pass, which is what orders Mask -> Outline.
+// Border width: _OutlineWidth world units, but never less than _OutlineMinPixels pixels of the render target (per eye
+// in XR), so it still reads as a border on small or distant objects. The push is per screen axis (left/right by the
+// width, up/down by the width), not radial: a radial push only moves the side edges of a tall object by a fraction of
+// the width (the cosine of the angle), which made those sides vanish.
+//
+// HighlightPulse draws the two passes with two materials (pass toggled off with SetShaderPassEnabled) in two render
+// queues, Mask first, so the masks of ALL the renderers of the object are in the stencil before any outline is drawn.
 //
 // Lives in Assets/Resources so that it is always included in the build; loaded with Resources.Load<Shader>("ContainerOutline").
 // Single Pass Instanced (Quest): the stereo macros below are required, do not remove them.
@@ -18,6 +24,7 @@ Shader "SeparaVR/ContainerOutline"
         _OutlineColor ("Outline Color", Color) = (1, 0.45, 0, 1)
         _OutlineWidth ("Width (world units)", Float) = 0.05
         _OutlineCenter ("Center (world)", Vector) = (0, 0, 0, 1)
+        _OutlineMinPixels ("Min width (pixels)", Float) = 4
     }
     SubShader
     {
@@ -30,6 +37,7 @@ Shader "SeparaVR/ContainerOutline"
             half4 _OutlineColor;
             float4 _OutlineCenter;
             float _OutlineWidth;
+            float _OutlineMinPixels;
         CBUFFER_END
 
         struct Attributes
@@ -107,19 +115,21 @@ Shader "SeparaVR/ContainerOutline"
                 // Only when both the vertex and the centre are in front of the camera (otherwise the division is meaningless).
                 if (positionCS.w > 0.01 && centerCS.w > 0.01)
                 {
-                    // x is scaled by the aspect ratio so that the width is the same in both directions.
-                    float aspect = _ScreenParams.x / _ScreenParams.y;
-                    float2 fromCenter = positionCS.xy / positionCS.w - centerCS.xy / centerCS.w;
-                    fromCenter.x *= aspect;
-                    float len = length(fromCenter);
-                    if (len > 1e-5)
-                    {
-                        float2 dir = fromCenter / len;
-                        dir.x /= aspect;
-                        // A world length d at view depth w spans d * P[1][1] / w in NDC; the clip-space offset is that
-                        // times w, so the depth cancels and the border stays _OutlineWidth world units wide at any distance.
-                        positionCS.xy += dir * (_OutlineWidth * UNITY_MATRIX_P._m11);
-                    }
+                    // Size of the render target in pixels, render scale included (per eye in XR).
+                    float2 screenPx = _ScaledScreenParams.xy;
+                    // Offset of the vertex from the centre, in pixels.
+                    float2 fromCenterPx = (positionCS.xy / positionCS.w - centerCS.xy / centerCS.w) * screenPx * 0.5;
+                    // Per axis: -1 / +1 beyond one pixel from the centre lines, linear within it. Continuous in the
+                    // position, so vertices that share a position (seams, hard edges) move together and no gaps open.
+                    float2 dir = clamp(fromCenterPx, -1.0, 1.0);
+                    // A world length d at view depth w spans d * |P[0][0]| / w (x) or d * |P[1][1]| / w (y) in NDC; the
+                    // clip-space offset is that times w, so the depth cancels and the border stays _OutlineWidth world
+                    // units wide at any distance. abs: the GPU projection has P[1][1] < 0 when it is flipped to render
+                    // into a texture (URP intermediate / XR eye textures), which would push the vertices inward.
+                    float2 worldCS = _OutlineWidth * abs(float2(UNITY_MATRIX_P._m00, UNITY_MATRIX_P._m11));
+                    // n pixels are 2 n / size in NDC, times w in clip space.
+                    float2 minCS = (2.0 * _OutlineMinPixels / screenPx) * positionCS.w;
+                    positionCS.xy += dir * max(worldCS, minCS);
                 }
                 output.positionCS = positionCS;
                 return output;

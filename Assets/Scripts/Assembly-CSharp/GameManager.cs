@@ -15,8 +15,6 @@ public class GameManager : MonoBehaviour
 
 	public AnimationCurve curvita;
 
-	public Transform hand;
-
 	public Transform enviroment;
 
 	private Residuo residuoLevantado;
@@ -127,7 +125,6 @@ public class GameManager : MonoBehaviour
 			elapsed = Mathf.Clamp(elapsed, 0f, pickTime);
 			yield return new WaitForFixedUpdate();
 		}
-		residuo.SetParent(hand, true);
 		StartCoroutine(SostenerResiduo());
 	}
 

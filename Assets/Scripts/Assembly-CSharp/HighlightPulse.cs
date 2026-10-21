@@ -17,6 +17,9 @@ public class HighlightPulse
 	public const float PulseHz = 0.9f;
 	// Outline thickness in world units (metres), constant at any distance.
 	public const float OutlineWidth = 0.05f;
+	// ...but never thinner than this many pixels of the render target (per eye in XR), so that small or distant objects
+	// still get a visible border. Quest 3 eye buffer: roughly 15-20 px per degree at the centre.
+	public const float OutlineMinPixels = 4f;
 	// The outline breathes a little too: width and brightness factors at the bottom of the pulse (top = 1).
 	public const float OutlineMinWidthFactor = 0.75f;
 	public const float OutlineMinBrightness = 0.8f;
@@ -29,12 +32,22 @@ public class HighlightPulse
 	private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
 	private static readonly int OutlineCenterId = Shader.PropertyToID("_OutlineCenter");
 	private static readonly int OutlineWidthId = Shader.PropertyToID("_OutlineWidth");
+	private static readonly int OutlineMinPixelsId = Shader.PropertyToID("_OutlineMinPixels");
+	// The two passes of the shader, by LightMode, each one drawn with its own material and render queue: all the masks
+	// of the object (Geometry+9) are in the stencil before any of its outlines (Geometry+10) is drawn.
+	private const string MaskPassName = "SRPDefaultUnlit";
+	private const string OutlinePassName = "UniversalForward";
+	private const int MaskQueue = (int)RenderQueue.Geometry + 9;
+	private const int OutlineQueue = (int)RenderQueue.Geometry + 10;
 
 	/// <summary>Colour of the outline at the top of the pulse.</summary>
 	public Color OutlineColor;
 	/// <summary>Grosor del outline en unidades de mundo (metros) para este dueño.</summary>
 	public float Width = OutlineWidth;
+	/// <summary>Grosor mínimo del outline en píxeles (por ojo) para este dueño.</summary>
+	public float MinPixels = OutlineMinPixels;
 
+	private Material maskMaterial;
 	private Material outlineMaterial;
 	private float startTime;
 	private bool active;
@@ -46,9 +59,16 @@ public class HighlightPulse
 		Shader outlineShader = Resources.Load<Shader>(OutlineShaderResource);
 		if (outlineShader != null && outlineShader.isSupported)
 		{
+			maskMaterial = new Material(outlineShader);
+			maskMaterial.name = "Highlight outline mask (" + ownerName + ")";
+			maskMaterial.enableInstancing = true;
+			maskMaterial.renderQueue = MaskQueue;
+			maskMaterial.SetShaderPassEnabled(OutlinePassName, false);
 			outlineMaterial = new Material(outlineShader);
 			outlineMaterial.name = "Highlight outline (" + ownerName + ")";
 			outlineMaterial.enableInstancing = true;
+			outlineMaterial.renderQueue = OutlineQueue;
+			outlineMaterial.SetShaderPassEnabled(MaskPassName, false);
 		}
 		else
 		{
@@ -87,7 +107,7 @@ public class HighlightPulse
 	/// </summary>
 	public void DrawOutline(IList<MeshRenderer> renderers, int layer)
 	{
-		if (outlineMaterial == null || renderers == null)
+		if (outlineMaterial == null || maskMaterial == null || renderers == null)
 		{
 			return;
 		}
@@ -121,14 +141,12 @@ public class HighlightPulse
 		oc.a = 1f;
 		outlineMaterial.SetColor(OutlineColorId, oc);
 		outlineMaterial.SetVector(OutlineCenterId, bounds.center);
-		outlineMaterial.SetFloat(OutlineWidthId, Width * Mathf.Lerp(OutlineMinWidthFactor, 1f, pulse));
+		float widthFactor = Mathf.Lerp(OutlineMinWidthFactor, 1f, pulse);
+		outlineMaterial.SetFloat(OutlineWidthId, Width * widthFactor);
+		outlineMaterial.SetFloat(OutlineMinPixelsId, MinPixels * widthFactor);
 
-		RenderParams rp = new RenderParams(outlineMaterial);
-		rp.layer = layer;
-		rp.shadowCastingMode = ShadowCastingMode.Off;
-		rp.receiveShadows = false;
-		rp.lightProbeUsage = LightProbeUsage.Off;
-		rp.reflectionProbeUsage = ReflectionProbeUsage.Off;
+		RenderParams maskParams = MakeRenderParams(maskMaterial, layer);
+		RenderParams outlineParams = MakeRenderParams(outlineMaterial, layer);
 		for (int r = 0; r < renderers.Count; r++)
 		{
 			MeshRenderer meshRenderer = renderers[r];
@@ -154,10 +172,22 @@ public class HighlightPulse
 				int subMesh = first + i;
 				if (subMesh >= 0 && subMesh < mesh.subMeshCount)
 				{
-					Graphics.RenderMesh(rp, mesh, subMesh, matrix);
+					Graphics.RenderMesh(maskParams, mesh, subMesh, matrix);
+					Graphics.RenderMesh(outlineParams, mesh, subMesh, matrix);
 				}
 			}
 		}
+	}
+
+	private static RenderParams MakeRenderParams(Material material, int layer)
+	{
+		RenderParams rp = new RenderParams(material);
+		rp.layer = layer;
+		rp.shadowCastingMode = ShadowCastingMode.Off;
+		rp.receiveShadows = false;
+		rp.lightProbeUsage = LightProbeUsage.Off;
+		rp.reflectionProbeUsage = ReflectionProbeUsage.Off;
+		return rp;
 	}
 
 	private static bool IsDrawable(MeshRenderer meshRenderer)
@@ -172,6 +202,11 @@ public class HighlightPulse
 		{
 			Object.Destroy(outlineMaterial);
 			outlineMaterial = null;
+		}
+		if (maskMaterial != null)
+		{
+			Object.Destroy(maskMaterial);
+			maskMaterial = null;
 		}
 	}
 

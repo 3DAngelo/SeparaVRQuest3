@@ -27,8 +27,6 @@ public class Container : XRBaseInteractable
 
 	public Material defaultMaterial;
 
-	public Material hilightMaterial;
-
 	// ---- Choice of container by horizontal aim while an object is held (see CustomGrabInteractable.Update) ----
 
 	// A container is chosen when the horizontal direction of the aim is within this angle of the horizontal direction
@@ -58,6 +56,8 @@ public class Container : XRBaseInteractable
 	public const float OutlineMinBrightness = HighlightPulse.OutlineMinBrightness;
 	public static readonly Color OutlineOrange = new Color(1f, 0.45f, 0f, 1f);
 	public static readonly Color OutlineGreen = new Color(0.1f, 1f, 0.2f, 1f);
+	// Colour of the outline line itself (the same for every container); orange / green above only tint the body pulse.
+	public static readonly Color OutlineLineColor = Color.white;
 	// Assets/Resources/ContainerOutline.shader
 	public const string OutlineShaderResource = HighlightPulse.OutlineShaderResource;
 
@@ -217,14 +217,13 @@ public class Container : XRBaseInteractable
 		}
 
 		// One private copy per container, so that pulsing never touches the material asset. Based on the container's own
-		// look; the highlight material is only a fallback when there is no default material.
-		Material source = defaultMaterial != null ? defaultMaterial : hilightMaterial;
-		if (source != null)
+		// look (without a default material only the outline is shown).
+		if (defaultMaterial != null)
 		{
-			pulseMaterial = new HighlightPulse.PulsingMaterial(source);
+			pulseMaterial = new HighlightPulse.PulsingMaterial(defaultMaterial);
 		}
 
-		pulse = new HighlightPulse("Container " + name, outlineColor);
+		pulse = new HighlightPulse("Container " + name, OutlineLineColor);
 		pulse.Width = OutlineWidth;
 	}
 
@@ -242,11 +241,7 @@ public class Container : XRBaseInteractable
 			return;
 		}
 		pulse.Begin();
-		if (pulseMaterial == null)
-		{
-			SetMaterial(hilightMaterial);
-		}
-		else
+		if (pulseMaterial != null)
 		{
 			// sharedMaterial: every renderer shows the very same instance, the one UpdateHighlight animates.
 			if (_renderer)

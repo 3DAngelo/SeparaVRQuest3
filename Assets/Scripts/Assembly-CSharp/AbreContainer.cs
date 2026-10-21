@@ -4,8 +4,6 @@ public class AbreContainer : MonoBehaviour
 {
 	private bool isQueued;
 
-	public SightSelection.Action opensIn;
-
 	public AudioClip SonidoAbre;
 
 	public AudioClip SonidoCierra;
@@ -18,27 +16,6 @@ public class AbreContainer : MonoBehaviour
 
 	private void Update()
 	{
-	}
-
-	private void OnSelected()
-	{
-		if (opensIn == SightSelection.Action.SELECTED)
-		{
-			Open();
-		}
-	}
-
-	private void OnOver()
-	{
-		if (opensIn == SightSelection.Action.OVER)
-		{
-			Open();
-		}
-	}
-
-	private void OnOut()
-	{
-		Close();
 	}
 
 	// Open / Close are also called by GameManager.ArrojarResiduos: open while a dumped object flies in.
