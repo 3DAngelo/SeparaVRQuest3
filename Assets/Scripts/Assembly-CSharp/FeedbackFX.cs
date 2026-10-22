@@ -10,7 +10,7 @@ using UnityEngine.Rendering;
 ///    TutorialIntro), and a small grey puff when an object is released over the wrong one.
 ///
 /// Quest 3 budget: every system uses the same additive unlit shader (Assets/Resources/FxAdditive.shader, single pass
-/// instanced ready) in three materials (shared particles, brighter sparkles, beam core line) with small procedural
+/// instanced ready) in two materials (shared particles, brighter sparkles) with small procedural
 /// textures; no lights, no trails, no collision, no noise module; particle counts are capped (see the Max constants). Nothing here allocates per frame: systems are created once
 /// and then only played / stopped / moved.
 /// </summary>
@@ -34,53 +34,51 @@ public static class FeedbackFX
 	// the end point whose control point is origin + aim direction * length * BeamCurveRatio (XRI's default bend ratio is
 	// 0.5). The end point lags behind the aim (HandBeamFX smooths it), so when the hand moves the line bends lazily.
 	public const float BeamCurveRatio = 0.5f;
-	// Extra soft sag of the control point, downward, as a fraction of the length: a gentle arc even with a still hand.
-	public const float BeamSag = 0.07f;
-	// Points of the core line along the curve.
+	// Soft upward bow: the control point is lifted this fraction of the length above the line, so the beam arcs gently
+	// UP between hand and tip (both ends stay exactly where they are). Small, so it never reads as aiming at the sky.
+	public const float BeamLift = 0.05f;
+	// Samples along the curve used to measure its length (the lights travel at BeamSpeed along it).
 	public const int BeamCurvePoints = 20;
 	// Speed of the lights flowing from the tip to the hand (m/s along the curve).
 	public const float BeamSpeed = 2.2f;
-	// Particles per second per hand.
-	public const float BeamRate = 90f;
+	// Particles per second per hand (particles only, no centre line, so a dense stream).
+	public const float BeamRate = 170f;
 	// The stream starts this far in front of the aim origin, so it does not cover the hand itself.
 	public const float BeamStartOffset = 0.06f;
 	// Longest beam (m); HandBeamFX does not show it toward anything farther.
 	public const float BeamMaxLength = 5f;
 	// Shorter than this (the residuo has arrived at the hand) nothing is drawn.
 	public const float BeamMinLength = 0.1f;
-	public const float BeamSizeMin = 0.018f;
-	public const float BeamSizeMax = 0.034f;
-	// The lights spiral gently around the curve: radius (m) and angular speed (rad/s) of the swirl.
-	public const float BeamSwirlRadius = 0.007f;
-	public const float BeamSwirlSpeed = 6f;
+	public const float BeamSizeMin = 0.02f;
+	public const float BeamSizeMax = 0.038f;
+	// Vortex: the lights spiral around the curve on BeamSpiralStrands interleaved helices (evenly spaced phases plus a
+	// little per-light jitter), so it reads as a swirling vortex, not a single corkscrew.
+	public const int BeamSpiralStrands = 3;
+	// Per-light phase jitter around its strand (radians).
+	public const float BeamSpiralPhaseJitter = 0.6f;
+	// Spiral radius (m) at the tip and at the hand (it tightens as the lights are pulled in); each light varies it by
+	// +/- BeamSpiralRadiusJitter (fraction).
+	public const float BeamSpiralRadiusTip = 0.018f;
+	public const float BeamSpiralRadiusHand = 0.005f;
+	public const float BeamSpiralRadiusJitter = 0.3f;
+	// Turns per metre travelled (the pitch of the helices), plus a slow extra spin with time (rad/s).
+	public const float BeamSpiralTurnsPerMeter = 3f;
+	public const float BeamSpiralSpin = 4f;
 	// Pale sky blue to warm gold; alpha = how strong the stream is (it is additive, so it also dims it).
 	public static readonly Color BeamColorA = new Color(0.55f, 0.85f, 1f, 0.75f);
 	public static readonly Color BeamColorB = new Color(1f, 0.85f, 0.5f, 0.75f);
 	// Each light is a short streak along the flow: stretched by its velocity times this (seconds).
-	public const float BeamStreak = 0.025f;
+	public const float BeamStreak = 0.012f;
 	// Fade of a light along its way, as fractions of the length (0 = tip, 1 = hand): in over the first BeamFlowFadeIn at
 	// the tip, out from BeamFlowFadeOutStart before it reaches the hand. And its size at the hand relative to the tip
 	// (they shrink a little while being pulled in).
 	public const float BeamFlowFadeIn = 0.06f;
 	public const float BeamFlowFadeOutStart = 0.8f;
 	public const float BeamFlowSizeAtHand = 0.6f;
-	// Cap per hand: BeamRate * (BeamMaxLength / BeamSpeed) is about 205.
-	public const int BeamMaxParticles = 224;
+	// Cap per hand: BeamRate * (BeamMaxLength / BeamSpeed) is about 386 for the longest (5 m) beam; usual beams are
+	// 1.5 - 3 m (115 - 230 particles).
+	public const int BeamMaxParticles = 400;
 
-	// Soft continuous core of the beam: one additive LineRenderer (BeamCurvePoints points, camera facing) along the same
-	// curve, under the flowing lights, so the beam reads as a stream of light rather than a dotted trail. Its own small
-	// procedural texture gives a soft cross-section (bright thin centre, faint halo) and fades it at both ends.
-	// Tractor look: thinner and warm at the hand, wider and brighter cyan at the tip (it pulls from there).
-	// Width (m) at the hand and at the tip.
-	public const float BeamCoreWidthStart = 0.006f;
-	public const float BeamCoreWidthEnd = 0.011f;
-	// Colours at the hand / at the tip (alpha = strength; additive, so this keeps it soft, not blinding).
-	public static readonly Color BeamCoreColorA = new Color(1f, 0.86f, 0.5f, 0.5f);
-	public static readonly Color BeamCoreColorB = new Color(0.55f, 0.9f, 1f, 0.95f);
-	// Fractions of the length (0 = hand, 1 = tip) over which the core fades in from the hand, and from where it fades
-	// out at the tip (short, so the tip stays bright).
-	public const float BeamCoreFadeIn = 0.06f;
-	public const float BeamCoreFadeOutStart = 0.94f;
 	// How fast the beam fades in / out when it is shown / hidden (1/s; 6 = about 0.17 s), and the quicker fade when the
 	// residuo arrives at the hand.
 	public const float BeamFadeSpeed = 6f;
@@ -168,9 +166,7 @@ public static class FeedbackFX
 
 	private static Material material;
 	private static Material sparkleMaterial;
-	private static Material coreMaterial;
 	private static Texture2D atlas;
-	private static Texture2D coreTexture;
 	private static bool materialFailed;
 
 	private struct FireworksEntry
@@ -187,9 +183,7 @@ public static class FeedbackFX
 	{
 		material = null;
 		sparkleMaterial = null;
-		coreMaterial = null;
 		atlas = null;
-		coreTexture = null;
 		materialFailed = false;
 		fireworks.Clear();
 		puff = null;
@@ -242,30 +236,10 @@ public static class FeedbackFX
 		}
 	}
 
-	/// <summary>Copy of <see cref="Material"/> with the beam core texture (null without the shader).</summary>
-	private static Material CoreMaterial
-	{
-		get
-		{
-			if (coreMaterial == null && Material != null)
-			{
-				if (coreTexture == null)
-				{
-					coreTexture = CreateCoreTexture();
-				}
-				coreMaterial = new Material(material);
-				coreMaterial.name = "FeedbackFX additive (beam core)";
-				coreMaterial.hideFlags = HideFlags.DontSave;
-				coreMaterial.mainTexture = coreTexture;
-			}
-			return coreMaterial;
-		}
-	}
 
 	// ---------------------------------------------------------------- hand beam
 
 	// Scratch buffers shared by every beam (main thread only; no per-frame allocations).
-	private static readonly Vector3[] beamCurve = new Vector3[BeamCurvePoints];
 	private static ParticleSystem.Particle[] beamParticles;
 
 	/// <summary>
@@ -297,37 +271,9 @@ public static class FeedbackFX
 		r.lengthScale = 1f;
 		SetTile(ps, false);
 
-		// The continuous core: first child of the beam, world space points along the curve (set by PlaceBeam).
-		GameObject coreObject = new GameObject("Beam Core");
-		coreObject.transform.SetParent(ps.transform, false);
-		LineRenderer core = coreObject.AddComponent<LineRenderer>();
-		core.sharedMaterial = CoreMaterial;
-		core.useWorldSpace = true;
-		core.positionCount = BeamCurvePoints;
-		core.alignment = LineAlignment.View;
-		core.textureMode = LineTextureMode.Stretch;
-		core.numCapVertices = 0;
-		core.numCornerVertices = 0;
-		core.startWidth = BeamCoreWidthStart;
-		core.endWidth = BeamCoreWidthEnd;
-		core.widthMultiplier = 0f;   // grown in by PlaceBeam
-		core.startColor = BeamCoreColorA;
-		core.endColor = BeamCoreColorB;
-		core.shadowCastingMode = ShadowCastingMode.Off;
-		core.receiveShadows = false;
-		core.lightProbeUsage = LightProbeUsage.Off;
-		core.reflectionProbeUsage = ReflectionProbeUsage.Off;
-		core.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
-		core.allowOcclusionWhenDynamic = false;
-		core.enabled = false;
 		return ps;
 	}
 
-	/// <summary>The continuous core line of a beam made by <see cref="CreateBeam"/> (cache it; null if missing).</summary>
-	public static LineRenderer BeamCore(ParticleSystem beam)
-	{
-		return beam != null && beam.transform.childCount > 0 ? beam.transform.GetChild(0).GetComponent<LineRenderer>() : null;
-	}
 
 	/// <summary>Point of the quadratic Bezier p0 - p1 - p2 at t (0 = p0, 1 = p2).</summary>
 	public static Vector3 Bezier(Vector3 p0, Vector3 p1, Vector3 p2, float t)
@@ -339,23 +285,23 @@ public static class FeedbackFX
 	/// <summary>
 	/// The beam's control points: from BeamStartOffset in front of <paramref name="origin"/> (the hand's aim origin) to
 	/// <paramref name="end"/>, bending like the XRI line: control point along <paramref name="aimDirection"/> at
-	/// BeamCurveRatio of the length, sagged down by BeamSag. Returns the straight distance p0 - p2.
+	/// BeamCurveRatio of the length, lifted up by BeamLift (a soft upward bow). Returns the straight distance p0 - p2.
 	/// </summary>
 	public static float BeamControlPoints(Vector3 origin, Vector3 aimDirection, Vector3 end, out Vector3 p0, out Vector3 p1)
 	{
 		Vector3 dir = aimDirection.sqrMagnitude > 1e-6f ? aimDirection.normalized : Vector3.forward;
 		p0 = origin + dir * BeamStartOffset;
 		float chord = Vector3.Distance(p0, end);
-		p1 = p0 + dir * (chord * BeamCurveRatio) + Vector3.down * (chord * BeamSag);
+		p1 = p0 + dir * (chord * BeamCurveRatio) + Vector3.up * (chord * BeamLift);
 		return chord;
 	}
 
 	/// <summary>
 	/// Puts a beam on its curve (see <see cref="BeamControlPoints"/>) with the given visibility (0 = hidden .. 1 = full):
-	/// the core line along the curve, and every light flowing from the tip to the hand. Used both by HandBeamFX and by the
+	/// every light flowing from the tip to the hand, spiralling around it. Used both by HandBeamFX and by the
 	/// screenshot harness. Playing / stopping the emission is up to the caller.
 	/// </summary>
-	public static void PlaceBeam(ParticleSystem beam, LineRenderer core, Vector3 origin, Vector3 aimDirection, Vector3 end, float visibility)
+	public static void PlaceBeam(ParticleSystem beam, Vector3 origin, Vector3 aimDirection, Vector3 end, float visibility)
 	{
 		Vector3 p0;
 		Vector3 p1;
@@ -365,35 +311,21 @@ public static class FeedbackFX
 			visibility = 0f;
 		}
 		float length = 0f;
-		for (int i = 0; i < BeamCurvePoints; i++)
+		Vector3 previous = p0;
+		for (int i = 1; i < BeamCurvePoints; i++)
 		{
-			beamCurve[i] = Bezier(p0, p1, end, (float)i / (BeamCurvePoints - 1));
-			if (i > 0)
-			{
-				length += Vector3.Distance(beamCurve[i - 1], beamCurve[i]);
-			}
+			Vector3 point = Bezier(p0, p1, end, (float)i / (BeamCurvePoints - 1));
+			length += Vector3.Distance(previous, point);
+			previous = point;
 		}
 		beam.transform.position = end;   // new lights are born at the tip
-		if (core != null)
-		{
-			bool visible = visibility > 0.001f;
-			if (core.enabled != visible)
-			{
-				core.enabled = visible;
-			}
-			if (visible)
-			{
-				core.widthMultiplier = visibility;
-				core.SetPositions(beamCurve);
-			}
-		}
 		FlowBeam(beam, p0, p1, end, length, visibility);
 	}
 
 	/// <summary>
 	/// Places every light of the beam on the curve by its age: a light born at the tip has travelled age * BeamSpeed toward
 	/// the hand; past the hand it is removed. So the stream follows the curve exactly, and shortens with it (a residuo
-	/// flying to the hand). Swirl, colour and size come from each light's own random seed (nothing stored per light).
+	/// flying to the hand). Spiral strand, phase, radius, colour and size come from each light's own random seed (nothing stored per light).
 	/// </summary>
 	private static void FlowBeam(ParticleSystem beam, Vector3 p0, Vector3 p1, Vector3 p2, float length, float visibility)
 	{
@@ -409,6 +341,7 @@ public static class FeedbackFX
 		}
 		float invLength = 1f / Mathf.Max(0.01f, length);
 		float swirlScale = Mathf.Clamp01(length / 0.5f);   // a very short beam (arriving) does not swirl wider than itself
+		float turnRate = BeamSpiralTurnsPerMeter * 6.2831853f;   // radians per metre travelled
 		Vector3 chordDir = (p2 - p0).sqrMagnitude > 1e-8f ? (p2 - p0).normalized : Vector3.forward;
 		for (int i = 0; i < count; i++)
 		{
@@ -439,16 +372,23 @@ public static class FeedbackFX
 			float h1 = (seed & 0xFFFF) / 65535f;
 			float h2 = ((seed >> 16) & 0xFF) / 255f;
 			float h3 = ((seed >> 24) & 0xFF) / 255f;
-			float angle = h1 * 6.2831853f + age * BeamSwirlSpeed;
-			float radius = BeamSwirlRadius * (0.4f + 0.6f * h2) * swirlScale;
-			position += (a * Mathf.Cos(angle) + b * Mathf.Sin(angle)) * radius;
+			int strand = (int)(seed % (uint)BeamSpiralStrands);
+			float travelled = age * BeamSpeed;
+			float angle = strand * (6.2831853f / BeamSpiralStrands) + (h2 - 0.5f) * BeamSpiralPhaseJitter
+				+ travelled * turnRate + age * BeamSpiralSpin;
+			float radius = Mathf.Lerp(BeamSpiralRadiusTip, BeamSpiralRadiusHand, u) * (1f + (h1 - 0.5f) * 2f * BeamSpiralRadiusJitter) * swirlScale;
+			float cos = Mathf.Cos(angle);
+			float sin = Mathf.Sin(angle);
+			position += (a * cos + b * sin) * radius;
+			// Velocity along the curve plus around it (orients each streak along its own helix).
+			Vector3 around = (b * cos - a * sin) * (radius * (BeamSpeed * turnRate + BeamSpiralSpin));
 
 			float fade = Mathf.SmoothStep(0f, 1f, u / BeamFlowFadeIn) * (1f - Mathf.SmoothStep(0f, 1f, (u - BeamFlowFadeOutStart) / (1f - BeamFlowFadeOutStart))) * visibility;
 			Color color = Color.Lerp(BeamColorA, BeamColorB, h3);
 			color.a *= fade;
 
 			p.position = position;
-			p.velocity = -tangent * BeamSpeed;   // toward the hand (also orients the streak)
+			p.velocity = -tangent * BeamSpeed + around;   // toward the hand, spiralling (also orients the streak)
 			p.startColor = color;
 			p.startSize = Mathf.Lerp(BeamSizeMin, BeamSizeMax, h1) * Mathf.Lerp(1f, BeamFlowSizeAtHand, u);
 			beamParticles[i] = p;
@@ -910,38 +850,6 @@ public static class FeedbackFX
 		sheet.cycleCount = 1;
 		// frameOverTime is normalised over the whole sheet (0 = first tile, 0.5 = second); a constant per particle.
 		sheet.frameOverTime = dotsAndStars ? new ParticleSystem.MinMaxCurve(0f, 0.999f) : new ParticleSystem.MinMaxCurve(0f);
-	}
-
-	/// <summary>
-	/// The beam core texture: white rgb, alpha = soft cross-section (v: bright thin centre, faint halo) times the fade along
-	/// the line (u: 0 = hand .. 1 = tip; fades in from the hand over BeamCoreFadeIn, fades out from BeamCoreFadeOutStart to the tip).
-	/// </summary>
-	private static Texture2D CreateCoreTexture()
-	{
-		const int w = 64;
-		const int h = 32;
-		Texture2D tex = new Texture2D(w, h, TextureFormat.RGBA32, false, true);
-		tex.name = "FeedbackFX beam core";
-		tex.hideFlags = HideFlags.DontSave;
-		tex.wrapMode = TextureWrapMode.Clamp;
-		tex.filterMode = FilterMode.Bilinear;
-		Color32[] pixels = new Color32[w * h];
-		for (int x = 0; x < w; x++)
-		{
-			float u = (float)x / (w - 1);
-			float along = Mathf.SmoothStep(0f, 1f, u / BeamCoreFadeIn) * (1f - Mathf.SmoothStep(0f, 1f, (u - BeamCoreFadeOutStart) / (1f - BeamCoreFadeOutStart)));
-			for (int y = 0; y < h; y++)
-			{
-				float v = ((y + 0.5f) / h) * 2f - 1f;
-				float edge = 1f - Mathf.Abs(v);
-				float across = 0.85f * Mathf.Exp(-v * v * 20f) + 0.3f * edge * edge;
-				byte alpha = (byte)Mathf.RoundToInt(Mathf.Clamp01(across * along) * 255f);
-				pixels[y * w + x] = new Color32(255, 255, 255, alpha);
-			}
-		}
-		tex.SetPixels32(pixels);
-		tex.Apply(false, true);
-		return tex;
 	}
 
 	/// <summary>The glow atlas: white rgb, shape in alpha. Tile 0 = soft round dot, tile 1 = four-pointed star.</summary>

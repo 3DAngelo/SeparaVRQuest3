@@ -54,7 +54,6 @@ public class HandBeamFX : MonoBehaviour
 	private ICurveInteractionDataProvider curve;
 	private XROrigin xrOrigin;
 	private ParticleSystem beam;
-	private LineRenderer core;
 	private CurveVisualController[] stockLines;
 	private bool emitting;
 	private float visibility;
@@ -201,7 +200,6 @@ public class HandBeamFX : MonoBehaviour
 			enabled = false;   // no material on this platform: no beam at all, the stock line stays as it is
 			return;
 		}
-		core = FeedbackFX.BeamCore(beam);
 		if (FeedbackFX.BeamReplacesStockLine)
 		{
 			stockLines = GetComponentsInChildren<CurveVisualController>(true);
@@ -225,10 +223,6 @@ public class HandBeamFX : MonoBehaviour
 		if (beam != null)
 		{
 			beam.Clear(true);
-			if (core != null)
-			{
-				core.enabled = false;
-			}
 		}
 		SetStockLines(true);
 	}
@@ -337,13 +331,9 @@ public class HandBeamFX : MonoBehaviour
 			{
 				beam.Clear(true);   // fully faded: drop what is left, so it does not pop back in next time
 			}
-			if (core != null && core.enabled)
-			{
-				core.enabled = false;
-			}
 			return;
 		}
-		FeedbackFX.PlaceBeam(beam, core, origin, aim, end, visibility);
+		FeedbackFX.PlaceBeam(beam, origin, aim, end, visibility);
 	}
 
 	/// <summary>Follows grabs and releases of residuos by this interactor.</summary>

@@ -107,14 +107,13 @@ public static class ParticleSnapshot
 				rig.Point(origin, origin + Quaternion.AngleAxis(LagYaw, Vector3.up) * toResiduo);
 				ParticleSystem beam = FeedbackFX.CreateBeam(null);
 				temporary.Add(beam.gameObject);
-				LineRenderer core = FeedbackFX.BeamCore(beam);
-				SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, center, 1f, 2f, true);
+				SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, center, 1f, 2f, true);
 
 				ParticleSystem sparkles = FeedbackFX.CreateSparkles(grab.name);
 				temporary.Add(sparkles.gameObject);
 				FeedbackFX.FollowSparkles(sparkles, grab.GetComponentsInChildren<MeshRenderer>());
 				sparkles.Simulate(2f, true, true);
-				Log("beam particles " + beam.particleCount + ", sparkles " + sparkles.particleCount + ", core " + (core != null && core.enabled));
+				Log("beam particles " + beam.particleCount + ", sparkles " + sparkles.particleCount);
 
 				Texture2D full = Render(camera);
 				Save(full, Path.Combine(outDir, tag + "_player_beam_full.png"));
@@ -151,7 +150,7 @@ public static class ParticleSnapshot
 				// Flow evidence, same side camera: two frames 0.08 s apart, and an "exposure" of 8 frames 0.02 s apart
 				// where older frames are dimmer: each light leaves a fading trail behind it, bright head toward the hand.
 				Texture2D flowA = Crop(Render(camera), sideRect, 1200);
-				SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, center, 1f, 0.08f, false);
+				SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, center, 1f, 0.08f, false);
 				Texture2D flowB = Crop(Render(camera), sideRect, 1200);
 				Save(flowA, Path.Combine(outDir, tag + "_flow_a.png"));
 				Save(flowB, Path.Combine(outDir, tag + "_flow_b.png"));
@@ -160,7 +159,7 @@ public static class ParticleSnapshot
 				List<Texture2D> exposure = new List<Texture2D>();
 				for (int k = 0; k < ExposureFrames; k++)
 				{
-					SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, center, 1f, 0.02f, false);
+					SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, center, 1f, 0.02f, false);
 					Texture2D frameShot = Render(camera);
 					exposure.Add(Crop(frameShot, sideRect, 1200));
 					UnityEngine.Object.DestroyImmediate(frameShot);
@@ -173,6 +172,21 @@ public static class ParticleSnapshot
 					UnityEngine.Object.DestroyImmediate(e);
 				}
 
+				// ---- 1b'. spiral close-up: side camera about 1 m from the middle of the beam, two frames ----
+				Vector3 closeAt = Vector3.Lerp(origin, center, 0.55f);
+				camera.transform.position = closeAt + side * 1f + Vector3.up * 0.05f;
+				camera.transform.LookAt(closeAt);
+				Bounds closeView = new Bounds(closeAt, Vector3.one * 0.35f);
+				for (int k = 0; k < 2; k++)
+				{
+					Texture2D spiralShot = Render(camera);
+					Texture2D spiralCrop = Crop(spiralShot, CropRect(camera, closeView), 1200);
+					Save(spiralCrop, Path.Combine(outDir, tag + "_spiral_close_" + (k == 0 ? "a" : "b") + ".png"));
+					Add(tiles, names, spiralCrop, "spiral close-up, 1 m side" + (k == 0 ? "" : " (+0.05 s)"));
+					UnityEngine.Object.DestroyImmediate(spiralShot);
+					SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, center, 1f, 0.05f, false);
+				}
+
 				// ---- 1c. pulling: the residuo grabbed and halfway on its flight to the hand, the beam shortened to it ----
 				sparkles.gameObject.SetActive(false);
 				rig.Point(origin, center);   // the hand still points where it grabbed
@@ -182,8 +196,8 @@ public static class ParticleSnapshot
 				movedGrabPosition = grab.transform.position;
 				grab.transform.position += flyingCenter - center;
 				Vector3 tip = grab.transform.TransformPoint(localCenter);
-				SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, center, 1f, 2f, true);   // the stream as it was...
-				SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, tip, 1f, 0.25f, false);  // ...then 0.25 s of flight
+				SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, center, 1f, 2f, true);   // the stream as it was...
+				SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, tip, 1f, 0.25f, false);  // ...then 0.25 s of flight
 				Log("pulling: tip " + tip.ToString("F3") + " (" + Vector3.Distance(rig.AimOrigin, tip).ToString("F2") + " m from the hand), particles " + beam.particleCount);
 				camera.transform.position = eye;
 				camera.transform.LookAt(Vector3.Lerp(eye, center, 0.75f));
@@ -211,7 +225,7 @@ public static class ParticleSnapshot
 				Log("sidewalk surface under the aim: y " + surfaceY.ToString("F3") + " (XR Origin floor " + groundY.ToString("F3") + ")");
 				bool ruleGround = HandBeamFX.AimsAtSidewalk(rig.AimOrigin, rig.AimDirection, surfaceY, false, Vector3.zero, false, out groundEnd);
 				Log("rule: aim at bare sidewalk -> " + (ruleGround ? "BEAM ON" : "off") + ", end " + groundEnd.ToString("F2"));
-				SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, groundEnd, ruleGround ? 1f : 0f, 2f, true);
+				SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, groundEnd, ruleGround ? 1f : 0f, 2f, true);
 				camera.transform.position = eye;
 				camera.transform.LookAt(Vector3.Lerp(eye, center, 0.75f));
 				Texture2D bare = Render(camera);
@@ -228,7 +242,7 @@ public static class ParticleSnapshot
 				Vector3 upEnd;
 				bool ruleUp = HandBeamFX.AimsAtSidewalk(rig.AimOrigin, rig.AimDirection, groundY, false, Vector3.zero, false, out upEnd);
 				Log("rule: aim " + UpPitch + " deg above the horizon (dir " + rig.AimDirection.ToString("F2") + ") -> " + (ruleUp ? "BEAM ON" : "off"));
-				SimulateBeam(beam, core, rig.AimOrigin, rig.AimDirection, ruleUp ? upEnd : rig.AimOrigin + rig.AimDirection * 3f, ruleUp ? 1f : 0f, 2f, true);
+				SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, ruleUp ? upEnd : rig.AimOrigin + rig.AimDirection * 3f, ruleUp ? 1f : 0f, 2f, true);
 				if (!ruleUp)
 				{
 					beam.Clear(true);   // as HandBeamFX does once faded out
@@ -618,9 +632,9 @@ public static class ParticleSnapshot
 	}
 
 	/// <summary>Places the beam on its curve, advances it by <paramref name="seconds"/> (from scratch if restart), places it again.</summary>
-	private static void SimulateBeam(ParticleSystem beam, LineRenderer core, Vector3 origin, Vector3 aim, Vector3 end, float visibility, float seconds, bool restart)
+	private static void SimulateBeam(ParticleSystem beam, Vector3 origin, Vector3 aim, Vector3 end, float visibility, float seconds, bool restart)
 	{
-		FeedbackFX.PlaceBeam(beam, core, origin, aim, end, visibility);   // puts the emitter at the tip first
+		FeedbackFX.PlaceBeam(beam, origin, aim, end, visibility);   // puts the emitter at the tip first
 		if (restart)
 		{
 			beam.Simulate(seconds, true, true);
@@ -633,11 +647,11 @@ public static class ParticleSnapshot
 			{
 				float step = Mathf.Min(0.02f, left);
 				beam.Simulate(step, true, false);
-				FeedbackFX.PlaceBeam(beam, core, origin, aim, end, visibility);
+				FeedbackFX.PlaceBeam(beam, origin, aim, end, visibility);
 				left -= step;
 			}
 		}
-		FeedbackFX.PlaceBeam(beam, core, origin, aim, end, visibility);
+		FeedbackFX.PlaceBeam(beam, origin, aim, end, visibility);
 	}
 
 	/// <summary>"Long exposure": per pixel maximum of the frames, the older ones dimmer (frame k of n weighted (k+1)/n).</summary>
