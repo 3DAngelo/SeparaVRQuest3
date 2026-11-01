@@ -19,7 +19,7 @@ public class Container : XRBaseInteractable
 
 	public string descripcion;
 
-	public Transform arrojarAqui;
+	public Transform[] arrojarAqui;
 
 	private MeshRenderer _renderer;
 
@@ -159,6 +159,16 @@ public class Container : XRBaseInteractable
 			}
 		}
 		return best;
+	}
+
+	/// <summary>One of the drop points, at random (the orange lid has two holes); the container itself if it has none.</summary>
+	public Transform RandomArrojarPoint()
+	{
+		if (arrojarAqui == null || arrojarAqui.Length == 0)
+		{
+			return transform;
+		}
+		return arrojarAqui[Random.Range(0, arrojarAqui.Length)];
 	}
 
 	public Vector3 AimPoint

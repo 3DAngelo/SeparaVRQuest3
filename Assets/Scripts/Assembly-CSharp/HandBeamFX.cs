@@ -5,20 +5,24 @@ using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.Interactors.Visuals;
 
 /// <summary>
-/// Hand "tractor beam": a soft, slightly curved stream of light from the hand to the residuo being chosen, with little
-/// lights flowing from the tip toward the hand. Installed by itself on every Near-Far Interactor of every loaded scene
-/// (no scene / prefab changes), like HandCloseGrab. The visuals are made and placed by FeedbackFX (CreateBeam /
-/// PlaceBeam); this decides when and where.
+/// Hand "tractor beam": a curved stream of little lights flowing from the tip toward the hand. Installed by itself on
+/// every Near-Far Interactor of every loaded scene (no scene / prefab changes), like HandCloseGrab. The visuals are made
+/// and placed by FeedbackFX (CreateBeam / PlaceBeam / BeamMotion); this decides when and where.
+///
+/// Older players have to be able to trust it, so it answers at once and its tip is the truth: there is no fade in and
+/// no smoothing of the end point (only the belly of the curve lags a little, see FeedbackFX.BeamBellySharpness).
 ///
 /// When it shows (one state per frame):
 ///  - Choosing: nothing held. Shown only while <see cref="AimsAtSidewalk"/> says the hand points down at the sidewalk
-///    (or straight at a residuo); its end is the pointed residuo or the ground point, smoothed so it lags a little
-///    behind the aim (the line then bends lazily, like the stock XRI line).
+///    (or at a residuo). Over the sidewalk: thin and crisp, its tip on the ground point, whole on its first frame.
+///    On a hovered residuo: its tip on the residuo's centre at once, growing into the vortex in
+///    FeedbackFX.BeamTargetBlendIn (back in FeedbackFX.BeamTargetBlendOut when the target is lost).
 ///  - Pulling: a residuo was just grabbed and flies to the hand (CustomGrabInteractable.IsFlyingToHand). The tip stays
 ///    exactly on the flying residuo, so the beam shortens with it; when it arrives, a quick fade.
 ///  - Off: anything else: holding a residuo and choosing its container, and after letting it go while it flies to a
 ///    container / is tossed / falls (until it is gone or at rest). Then it is back to Choosing, for the next residuo.
-/// Shown / hidden with a short fade (FeedbackFX.BeamFadeSpeed), never a pop.
+/// Hidden with a short fade out (FeedbackFX.BeamFadeSpeed).
+/// In the win scene there is no beam and no stock line; each hand emits sparkles instead, for the players to play and celebrate.
 /// With FeedbackFX.BeamReplacesStockLine the stock XRI line (CurveVisualController) is switched off while this exists,
 /// and switched back on if the beam cannot be made or this component goes away.
 /// </summary>
@@ -35,13 +39,13 @@ public class HandBeamFX : MonoBehaviour
 	// at least this upright) within GroundBand of the XR Origin floor, uses that height instead, so the beam ends ON the
 	// sidewalk, not under it.
 	public const float FloorNormalY = 0.7f;
-	// How quickly the beam's end follows where the hand points (1/s): lower = lazier, more bend while the hand moves.
-	public const float EndSharpness = 9f;
 	// After letting a residuo go, the beam stays off at least this long (s), then while the residuo is still moving faster
 	// than ReleaseRestSpeed (m/s) or flying into its container, but never more than ReleaseMaxQuiet (s).
 	public const float ReleaseQuiet = 0.5f;
 	public const float ReleaseRestSpeed = 0.3f;
 	public const float ReleaseMaxQuiet = 4f;
+	// Name of the win scene: there, no beam and no stock line; the hands emit sparkles instead.
+	public const string WinSceneName = "Win";
 
 	private enum Stage
 	{
@@ -55,9 +59,10 @@ public class HandBeamFX : MonoBehaviour
 	private XROrigin xrOrigin;
 	private ParticleSystem beam;
 	private CurveVisualController[] stockLines;
-	private bool emitting;
-	private float visibility;
-	private bool hasEnd;
+	private bool playing;
+	private bool winScene;
+	private ParticleSystem winSparkles;
+	private readonly FeedbackFX.BeamMotion motion = new FeedbackFX.BeamMotion();
 	private Vector3 end;
 	private Stage stage;
 	private bool quickFade;   // the residuo arrived at the hand: fade out quicker
@@ -66,6 +71,9 @@ public class HandBeamFX : MonoBehaviour
 	private Vector3 heldLocalCenter;
 	private CustomGrabInteractable released;
 	private float releaseTime;
+	// The residuo hovered last, and its centre in its own space (taken when the hover begins).
+	private CustomGrabInteractable hovered;
+	private Vector3 hoveredLocalCenter;
 
 	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
 	private static void Bootstrap()
@@ -193,6 +201,14 @@ public class HandBeamFX : MonoBehaviour
 		nearFar = GetComponent<NearFarInteractor>();
 		curve = nearFar;
 		xrOrigin = GetComponentInParent<XROrigin>(true);
+		if (gameObject.scene.name == WinSceneName)
+		{
+			winScene = true;
+			winSparkles = FeedbackFX.CreateHandSparkles(name);
+			stockLines = GetComponentsInChildren<CurveVisualController>(true);
+			SetStockLines(false);
+			return;
+		}
 		// Made up front (not on first use), so the stock line can be replaced from the start; hidden until needed.
 		beam = FeedbackFX.CreateBeam(transform);
 		if (beam == null)
@@ -209,7 +225,7 @@ public class HandBeamFX : MonoBehaviour
 
 	private void OnEnable()
 	{
-		if (beam != null)
+		if (beam != null || winScene)
 		{
 			SetStockLines(false);
 		}
@@ -217,13 +233,13 @@ public class HandBeamFX : MonoBehaviour
 
 	private void OnDisable()
 	{
-		SetEmitting(false);
-		visibility = 0f;
-		hasEnd = false;
-		if (beam != null)
+		if (winSparkles != null)
 		{
-			beam.Clear(true);
+			winSparkles.Stop(true, ParticleSystemStopBehavior.StopEmitting);
 		}
+		SetPlaying(false);
+		motion.Reset();
+		hovered = null;
 		SetStockLines(true);
 	}
 
@@ -233,6 +249,10 @@ public class HandBeamFX : MonoBehaviour
 		if (beam != null)
 		{
 			Destroy(beam.gameObject);
+		}
+		if (winSparkles != null)
+		{
+			Destroy(winSparkles.gameObject);
 		}
 	}
 
@@ -259,6 +279,11 @@ public class HandBeamFX : MonoBehaviour
 
 	private void LateUpdate()
 	{
+		if (winScene)
+		{
+			UpdateWinSparkles();
+			return;
+		}
 		if (nearFar == null || beam == null)
 		{
 			return;
@@ -272,14 +297,15 @@ public class HandBeamFX : MonoBehaviour
 		Vector3 target;
 		bool show;
 		float fadeSpeed = FeedbackFX.BeamFadeSpeed;
-		bool snapEnd = false;
+		bool pulling = false;
+		bool hasTarget = false;
 		if (held != null && held.IsFlyingToHand)
 		{
 			// Pulling: the tip exactly on the flying residuo.
 			stage = Stage.Pulling;
 			target = held.transform.TransformPoint(heldLocalCenter);
 			show = true;
-			snapEnd = true;
+			pulling = true;
 		}
 		else if (held != null || nearFar.hasSelection || ReleasedStillBusy())
 		{
@@ -299,22 +325,28 @@ public class HandBeamFX : MonoBehaviour
 			bool castHit = endType == EndPointType.ValidCastHit || endType == EndPointType.EmptyCastHit || endType == EndPointType.UI;
 			float groundY = xrOrigin != null && xrOrigin.Origin != null ? xrOrigin.Origin.transform.position.y : 0f;
 			groundY = SurfaceY(origin, aim, groundY);   // the real sidewalk surface, if the aim meets it
-			show = AimsAtSidewalk(origin, aim, groundY, castHit, hitPoint, endType == EndPointType.ValidCastHit && HoversResiduo(), out target);
+			// A hovered residuo (by the far ray or by the near caster, which reports no ray hit): the tip goes on its centre,
+			// steady whatever part of it the ray touches, and the same point the pull starts from.
+			CustomGrabInteractable residuo = HoveredResiduo();
+			if (residuo != hovered)
+			{
+				hovered = residuo;
+				hoveredLocalCenter = residuo != null ? LocalCenter(residuo) : Vector3.zero;   // once per hover
+			}
+			if (residuo != null)
+			{
+				hitPoint = residuo.transform.TransformPoint(hoveredLocalCenter);
+				castHit = true;
+			}
+			show = AimsAtSidewalk(origin, aim, groundY, castHit, hitPoint, residuo != null, out target);
+			hasTarget = show && residuo != null && (target - hitPoint).sqrMagnitude < 1e-6f;
 			if (!show)
 			{
 				target = end;   // fade out where it was
 			}
 		}
 
-		if (!hasEnd || visibility <= 0f || snapEnd)
-		{
-			end = target;
-			hasEnd = true;
-		}
-		else
-		{
-			end = Vector3.Lerp(end, target, 1f - Mathf.Exp(-EndSharpness * dt));   // lazy end: lags behind the aim
-		}
+		end = target;   // no lag: the tip says what is really being pointed at
 		if (show)
 		{
 			quickFade = false;
@@ -323,17 +355,45 @@ public class HandBeamFX : MonoBehaviour
 		{
 			fadeSpeed = FeedbackFX.BeamArriveFadeSpeed;
 		}
-		visibility = Mathf.MoveTowards(visibility, show ? 1f : 0f, fadeSpeed * dt);
-		SetEmitting(show);
-		if (visibility <= 0f)
+		motion.Step(dt, show, hasTarget || pulling, pulling, fadeSpeed);
+		if (motion.Visibility <= 0f)
 		{
-			if (beam.particleCount > 0)
+			SetPlaying(false);
+			return;
+		}
+		SetPlaying(true);
+		FeedbackFX.PlaceBeam(beam, motion, origin, aim, end, dt);
+	}
+
+	/// <summary>Win scene: the sparkles follow the palm while the hand is tracked (a controller: its own position).</summary>
+	private void UpdateWinSparkles()
+	{
+		if (winSparkles == null)
+		{
+			return;
+		}
+		Vector3 point = transform.position;
+		bool tracked = true;
+		HandCloseGrab hand = GetComponent<HandCloseGrab>();
+		if (hand != null)
+		{
+			Vector3 wrist, index, middle, little;
+			tracked = hand.TryGetPalmJoints(out wrist, out index, out middle, out little);
+			point = (wrist + index + middle + little) * 0.25f;
+		}
+		if (!tracked)
+		{
+			if (winSparkles.isEmitting)
 			{
-				beam.Clear(true);   // fully faded: drop what is left, so it does not pop back in next time
+				winSparkles.Stop(true, ParticleSystemStopBehavior.StopEmitting);   // the ones in the air finish
 			}
 			return;
 		}
-		FeedbackFX.PlaceBeam(beam, origin, aim, end, visibility);
+		winSparkles.transform.position = point;
+		if (!winSparkles.isEmitting)
+		{
+			winSparkles.Play();
+		}
 	}
 
 	/// <summary>Follows grabs and releases of residuos by this interactor.</summary>
@@ -377,35 +437,36 @@ public class HandBeamFX : MonoBehaviour
 		return busy;
 	}
 
-	/// <summary>True when this interactor is hovering a residuo that can still be grabbed.</summary>
-	private bool HoversResiduo()
+	/// <summary>The residuo this interactor is hovering that can still be grabbed, or the one its hand still keeps as the target (HandCloseGrab.TargetHold), or null.</summary>
+	private CustomGrabInteractable HoveredResiduo()
 	{
-		var hovered = nearFar.interactablesHovered;
-		for (int i = 0; i < hovered.Count; i++)
+		var hoveredNow = nearFar.interactablesHovered;
+		for (int i = 0; i < hoveredNow.Count; i++)
 		{
-			if (hovered[i] is CustomGrabInteractable residuo && !residuo.IsDumped)
+			if (hoveredNow[i] is CustomGrabInteractable residuo && !residuo.IsDumped)
 			{
-				return true;
+				return residuo;
 			}
 		}
-		return false;
+		HandCloseGrab hand = nearFar.GetComponent<HandCloseGrab>();
+		return hand != null ? hand.PointedResiduo : null;
 	}
 
-	private void SetEmitting(bool value)
+	/// <summary>Playing while the beam is visible; stopped and empty when hidden.</summary>
+	private void SetPlaying(bool value)
 	{
-		if (value == emitting)
+		if (beam == null || value == playing)
 		{
 			return;
 		}
-		emitting = value;
+		playing = value;
 		if (value)
 		{
 			beam.Play();
 		}
 		else
 		{
-			// The lights already on their way keep flowing to the hand while the beam fades.
-			beam.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+			beam.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 		}
 	}
 }

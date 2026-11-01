@@ -13,7 +13,7 @@ public class GameManager : MonoBehaviour
 
 	public float dumpTime = 3f;
 
-	public AnimationCurve curvita;
+    public AnimationCurve curvita;
 
 	public Transform enviroment;
 
@@ -166,7 +166,7 @@ public class GameManager : MonoBehaviour
 			lid.Open();
 		}
 		Vector3 startPosition = residuo.position;
-		Vector3 endPosition = container.arrojarAqui.position;
+		Vector3 endPosition = container.RandomArrojarPoint().position;
 		float elapsed = 0f;
 		while (elapsed < dumpTime)
 		{

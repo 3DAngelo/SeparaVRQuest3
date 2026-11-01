@@ -29,10 +29,11 @@ public static class ParticleSnapshot
 	private static readonly Vector3 HandOffset = new Vector3(0.2f, -0.38f, 0.3f);
 	// Fireworks frames (seconds after the deposit): early, peak, fading.
 	private static readonly float[] FireworksTimes = { 0.15f, 0.5f, 1.1f };
-	// Beam shots: the hand swept this far (deg, to the right) while the lazy end still lags on the residuo; how far along
-	// its flight to the hand the grabbed residuo is (0..1, before easing); how far above the horizon the "aim up" shot
-	// points (deg); frames in the flow exposure.
-	private const float LagYaw = 10f;
+	// Frame time of the stepped beam (Quest at 72 Hz), and the target-state moments that are measured and shown.
+	private const float BeamFrame = 1f / 72f;
+	private static readonly float[] TargetMoments = { 0f, 0.15f, 0.3f };
+	// Beam shots: how far along its flight to the hand the grabbed residuo is (0..1, before easing); how far above the
+	// horizon the "aim up" shot points (deg); frames in the flow exposure.
 	private const float FlightFraction = 0.5f;
 	private const float UpPitch = 15f;
 	private const int ExposureFrames = 8;
@@ -46,6 +47,8 @@ public static class ParticleSnapshot
 		}
 		RunAll();
 	}
+
+	private static Vector3 grabProbeOrigin;
 
 	public static void RunAll()
 	{
@@ -102,12 +105,12 @@ public static class ParticleSnapshot
 				bool ruleResiduo = HandBeamFX.AimsAtSidewalk(origin, (center - origin).normalized, groundY, true, center, true, out ruleEnd);
 				Log("rule: aim at residuo -> " + (ruleResiduo ? "BEAM ON" : "off"));
 
-				// ---- 1a. choosing: the hand has just swept LagYaw degrees to the right, the lazy end still on the residuo ----
-				Vector3 toResiduo = (center - origin).normalized;
-				rig.Point(origin, origin + Quaternion.AngleAxis(LagYaw, Vector3.up) * toResiduo);
+				// ---- 1a. choosing: the hand points at the residuo: full target look ----
+				rig.Point(origin, center);
 				ParticleSystem beam = FeedbackFX.CreateBeam(null);
 				temporary.Add(beam.gameObject);
-				SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, center, 1f, 2f, true);
+				FeedbackFX.BeamMotion motion = new FeedbackFX.BeamMotion();
+				SimulateBeam(beam, motion, rig.AimOrigin, rig.AimDirection, center, true, true, 2f, true);
 
 				ParticleSystem sparkles = FeedbackFX.CreateSparkles(grab.name);
 				temporary.Add(sparkles.gameObject);
@@ -123,7 +126,7 @@ public static class ParticleSnapshot
 				view.Encapsulate(bounds.center + Vector3.up * 0.3f);
 				Texture2D crop = Crop(full, CropRect(camera, view), 1200);
 				Save(crop, Path.Combine(outDir, tag + "_player_beam_crop.png"));
-				Add(tiles, names, crop, "choosing: curved beam to the residuo (hand swept " + LagYaw + " deg, end lagging)");
+				Add(tiles, names, crop, "target look: vortex to the residuo (settled)");
 				Bounds near = rig.HandBounds;
 				near.Encapsulate(origin + rig.AimDirection * 0.8f);
 				Texture2D handCrop = Crop(full, CropRect(camera, near), 1200);
@@ -150,7 +153,7 @@ public static class ParticleSnapshot
 				// Flow evidence, same side camera: two frames 0.08 s apart, and an "exposure" of 8 frames 0.02 s apart
 				// where older frames are dimmer: each light leaves a fading trail behind it, bright head toward the hand.
 				Texture2D flowA = Crop(Render(camera), sideRect, 1200);
-				SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, center, 1f, 0.08f, false);
+				SimulateBeam(beam, motion, rig.AimOrigin, rig.AimDirection, center, true, true, 0.08f, false);
 				Texture2D flowB = Crop(Render(camera), sideRect, 1200);
 				Save(flowA, Path.Combine(outDir, tag + "_flow_a.png"));
 				Save(flowB, Path.Combine(outDir, tag + "_flow_b.png"));
@@ -159,7 +162,7 @@ public static class ParticleSnapshot
 				List<Texture2D> exposure = new List<Texture2D>();
 				for (int k = 0; k < ExposureFrames; k++)
 				{
-					SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, center, 1f, 0.02f, false);
+					SimulateBeam(beam, motion, rig.AimOrigin, rig.AimDirection, center, true, true, 0.02f, false);
 					Texture2D frameShot = Render(camera);
 					exposure.Add(Crop(frameShot, sideRect, 1200));
 					UnityEngine.Object.DestroyImmediate(frameShot);
@@ -184,7 +187,7 @@ public static class ParticleSnapshot
 					Save(spiralCrop, Path.Combine(outDir, tag + "_spiral_close_" + (k == 0 ? "a" : "b") + ".png"));
 					Add(tiles, names, spiralCrop, "spiral close-up, 1 m side" + (k == 0 ? "" : " (+0.05 s)"));
 					UnityEngine.Object.DestroyImmediate(spiralShot);
-					SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, center, 1f, 0.05f, false);
+					SimulateBeam(beam, motion, rig.AimOrigin, rig.AimDirection, center, true, true, 0.05f, false);
 				}
 
 				// ---- 1c. pulling: the residuo grabbed and halfway on its flight to the hand, the beam shortened to it ----
@@ -196,8 +199,8 @@ public static class ParticleSnapshot
 				movedGrabPosition = grab.transform.position;
 				grab.transform.position += flyingCenter - center;
 				Vector3 tip = grab.transform.TransformPoint(localCenter);
-				SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, center, 1f, 2f, true);   // the stream as it was...
-				SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, tip, 1f, 0.25f, false);  // ...then 0.25 s of flight
+				SimulateBeam(beam, motion, rig.AimOrigin, rig.AimDirection, center, true, true, 2f, true);   // the stream as it was...
+				SimulateBeam(beam, motion, rig.AimOrigin, rig.AimDirection, tip, true, true, 0.25f, false);  // ...then 0.25 s of flight
 				Log("pulling: tip " + tip.ToString("F3") + " (" + Vector3.Distance(rig.AimOrigin, tip).ToString("F2") + " m from the hand), particles " + beam.particleCount);
 				camera.transform.position = eye;
 				camera.transform.LookAt(Vector3.Lerp(eye, center, 0.75f));
@@ -225,7 +228,7 @@ public static class ParticleSnapshot
 				Log("sidewalk surface under the aim: y " + surfaceY.ToString("F3") + " (XR Origin floor " + groundY.ToString("F3") + ")");
 				bool ruleGround = HandBeamFX.AimsAtSidewalk(rig.AimOrigin, rig.AimDirection, surfaceY, false, Vector3.zero, false, out groundEnd);
 				Log("rule: aim at bare sidewalk -> " + (ruleGround ? "BEAM ON" : "off") + ", end " + groundEnd.ToString("F2"));
-				SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, groundEnd, ruleGround ? 1f : 0f, 2f, true);
+				SimulateBeam(beam, motion, rig.AimOrigin, rig.AimDirection, groundEnd, ruleGround, false, 2f, true);
 				camera.transform.position = eye;
 				camera.transform.LookAt(Vector3.Lerp(eye, center, 0.75f));
 				Texture2D bare = Render(camera);
@@ -242,7 +245,7 @@ public static class ParticleSnapshot
 				Vector3 upEnd;
 				bool ruleUp = HandBeamFX.AimsAtSidewalk(rig.AimOrigin, rig.AimDirection, groundY, false, Vector3.zero, false, out upEnd);
 				Log("rule: aim " + UpPitch + " deg above the horizon (dir " + rig.AimDirection.ToString("F2") + ") -> " + (ruleUp ? "BEAM ON" : "off"));
-				SimulateBeam(beam, rig.AimOrigin, rig.AimDirection, ruleUp ? upEnd : rig.AimOrigin + rig.AimDirection * 3f, ruleUp ? 1f : 0f, 2f, true);
+				SimulateBeam(beam, motion, rig.AimOrigin, rig.AimDirection, ruleUp ? upEnd : rig.AimOrigin + rig.AimDirection * 3f, ruleUp, false, 2f, true);
 				if (!ruleUp)
 				{
 					beam.Clear(true);   // as HandBeamFX does once faded out
@@ -258,6 +261,155 @@ public static class ParticleSnapshot
 				Save(upCrop, Path.Combine(outDir, tag + "_aim_up.png"));
 				Add(tiles, names, upCrop, "aim above horizon: rule " + (ruleUp ? "ON" : "off (no beam)"));
 				UnityEngine.Object.DestroyImmediate(up);
+				// ---- 1f. the numbers: stepped frame by frame through BeamMotion + PlaceBeam, the logic HandBeamFX runs ----
+				GrabPathProbe(rig.AimOrigin);
+				grabProbeOrigin = rig.AimOrigin;
+				rig.Point(origin, groundAim);
+				Vector3 sidewalkOrigin = rig.AimOrigin;
+				Vector3 sidewalkAim = rig.AimDirection;
+				Vector3 sidewalkEnd = groundEnd;
+				beam.Clear(true);
+				motion.Reset();
+				StepBeam(beam, motion, sidewalkOrigin, sidewalkAim, sidewalkEnd, true, false);
+				MeasureBeam("sidewalk, first visible frame", beam, motion, sidewalkOrigin, sidewalkAim, sidewalkEnd);
+				camera.transform.position = eye;
+				camera.transform.LookAt(Vector3.Lerp(eye, center, 0.75f));
+				Bounds stateView = view;
+				stateView.Encapsulate(sidewalkEnd);
+				Texture2D firstShot = Render(camera);
+				RectInt stateRect = CropRect(camera, stateView);
+				Texture2D firstCrop = Crop(firstShot, stateRect, 1200);
+				Save(firstCrop, Path.Combine(outDir, tag + "_sidewalk_first_frame.png"));
+				Add(tiles, names, firstCrop, "sidewalk: FIRST visible frame");
+				UnityEngine.Object.DestroyImmediate(firstShot);
+				Vector3 sideAt = Vector3.Lerp(sidewalkOrigin, sidewalkEnd, 0.5f);
+				Vector3 sideDir = Vector3.Cross(Vector3.up, Flat(sidewalkEnd - sidewalkOrigin)).normalized;
+				Bounds sideWhole = new Bounds(sidewalkOrigin, Vector3.zero);
+				sideWhole.Encapsulate(sidewalkEnd);
+				sideWhole.Expand(0.12f);
+				camera.transform.position = sideAt + sideDir * Mathf.Max(1.5f, Vector3.Distance(sidewalkOrigin, sidewalkEnd) * 1.1f) + Vector3.up * 0.2f;
+				camera.transform.LookAt(sideAt);
+				Texture2D firstSide = Render(camera);
+				Texture2D firstSideCrop = Crop(firstSide, CropRect(camera, sideWhole), 1200);
+				Save(firstSideCrop, Path.Combine(outDir, tag + "_sidewalk_first_frame_side.png"));
+				Add(tiles, names, firstSideCrop, "sidewalk: first frame, side view");
+				UnityEngine.Object.DestroyImmediate(firstSide);
+				for (int f = 0; f < 72; f++)
+				{
+					StepBeam(beam, motion, sidewalkOrigin, sidewalkAim, sidewalkEnd, true, false);
+				}
+				MeasureBeam("sidewalk, 1 s later", beam, motion, sidewalkOrigin, sidewalkAim, sidewalkEnd);
+				camera.transform.position = eye;
+				camera.transform.LookAt(Vector3.Lerp(eye, center, 0.75f));
+				Texture2D sidewalkShot = Render(camera);
+				Texture2D sidewalkCrop = Crop(sidewalkShot, stateRect, 1200);
+				UnityEngine.Object.DestroyImmediate(sidewalkShot);
+
+				// A target appears: the hand now points at the residuo. The hover shake starts with it.
+				rig.Point(origin, center);
+				Vector3 targetOrigin = rig.AimOrigin;
+				Vector3 targetAim = rig.AimDirection;
+				Vector3 realPosition = grab.transform.position;
+				Quaternion realRotation = grab.transform.rotation;
+				Rigidbody realBody = grab.GetComponent<Rigidbody>();
+				Vector3 bodyPosition = realBody != null ? realBody.position : Vector3.zero;
+				Collider realCollider = grab.GetComponentInChildren<Collider>();
+				Vector3 colliderCenter = realCollider != null ? realCollider.bounds.center : Vector3.zero;
+				MeshRenderer[] shakeRenderers = grab.GetComponentsInChildren<MeshRenderer>();
+				CustomGrabInteractable.HoverShake shake = new CustomGrabInteractable.HoverShake(shakeRenderers);
+				shake.Begin();
+				float shakeTime = 0f;
+				int frame = 0;
+				Texture2D targetCrop = null;
+				for (int m = 0; m < TargetMoments.Length; m++)
+				{
+					int lastFrame = Mathf.RoundToInt(TargetMoments[m] / BeamFrame);
+					for (; frame <= lastFrame; frame++)
+					{
+						StepBeam(beam, motion, targetOrigin, targetAim, center, true, true);
+						shake.Apply(shakeTime, BeamFrame);
+						shakeTime += BeamFrame;
+					}
+					string moment = TargetMoments[m].ToString("F2") + " s";
+					MeasureBeam("target, " + moment + " after it appears (frame " + (frame - 1) + ")", beam, motion, targetOrigin, targetAim, center);
+					Log("TIMING shake at " + moment + ": shown " + (shake.CurrentDistance * 1000f).ToString("F1") + " mm from the real centre");
+					if (TargetMoments[m] <= 0f)
+					{
+						continue;
+					}
+					camera.transform.position = eye;
+					camera.transform.LookAt(Vector3.Lerp(eye, center, 0.75f));
+					Texture2D momentShot = Render(camera);
+					Texture2D momentCrop = Crop(momentShot, stateRect, 1200);
+					Save(momentCrop, Path.Combine(outDir, tag + "_target_" + Mathf.RoundToInt(TargetMoments[m] * 100f).ToString("D2") + "cs.png"));
+					Add(tiles, names, momentCrop, "target: " + moment + " after it appears");
+					targetCrop = momentCrop;
+					UnityEngine.Object.DestroyImmediate(momentShot);
+
+					Vector3 closeSpot = Vector3.Lerp(targetOrigin, center, 0.55f);
+					camera.transform.position = closeSpot + Vector3.Cross(Vector3.up, Flat(center - targetOrigin)).normalized + Vector3.up * 0.05f;
+					camera.transform.LookAt(closeSpot);
+					Texture2D momentClose = Render(camera);
+					Texture2D momentCloseCrop = Crop(momentClose, CropRect(camera, new Bounds(closeSpot, Vector3.one * 0.35f)), 1200);
+					Save(momentCloseCrop, Path.Combine(outDir, tag + "_target_close_" + Mathf.RoundToInt(TargetMoments[m] * 100f).ToString("D2") + "cs.png"));
+					Add(tiles, names, momentCloseCrop, "target, close (1 m side): " + moment);
+					UnityEngine.Object.DestroyImmediate(momentClose);
+				}
+				Texture2D versus = SideBySide(sidewalkCrop, targetCrop);
+				Save(versus, Path.Combine(outDir, tag + "_sidewalk_vs_target.png"));
+				Add(tiles, names, versus, "sidewalk (left) vs target at 0.30 s (right)");
+
+				// The shake: two moments, tight on the object, and their difference (brightened). Nothing real moves.
+				Bounds objectView = bounds;
+				objectView.Expand(0.05f);
+				Vector3 shakeEye = Vector3.Lerp(eye, center, 0.6f);
+				camera.transform.position = shakeEye;
+				camera.transform.LookAt(center);
+				RectInt objectRect = CropRect(camera, objectView);
+				shake.Apply(shakeTime, BeamFrame);
+				float distanceA = shake.CurrentDistance;
+				beam.gameObject.SetActive(false);
+				Texture2D shakeShotA = Render(camera);
+				Texture2D shakeA = Crop(shakeShotA, objectRect, 1200);
+				UnityEngine.Object.DestroyImmediate(shakeShotA);
+				shakeTime += 0.03f;
+				shake.Apply(shakeTime, BeamFrame);
+				float distanceB = shake.CurrentDistance;
+				Texture2D shakeShotB = Render(camera);
+				Texture2D shakeB = Crop(shakeShotB, objectRect, 1200);
+				UnityEngine.Object.DestroyImmediate(shakeShotB);
+				Save(shakeA, Path.Combine(outDir, tag + "_shake_a.png"));
+				Save(shakeB, Path.Combine(outDir, tag + "_shake_b.png"));
+				Texture2D shakeDiff = Difference(shakeA, shakeB, 4f);
+				Save(shakeDiff, Path.Combine(outDir, tag + "_shake_diff.png"));
+				Add(tiles, names, shakeA, "shake frame A (" + (distanceA * 1000f).ToString("F1") + " mm)");
+				Add(tiles, names, shakeB, "shake frame B (" + (distanceB * 1000f).ToString("F1") + " mm)");
+				Add(tiles, names, shakeDiff, "shake: A - B, 4x");
+				float peak = 0f;
+				for (float q = 0f; q < 2f; q += 0.002f)
+				{
+					Vector3 peakOffset;
+					Quaternion peakTilt;
+					Bounds sizeBounds = shakeRenderers[0].bounds;
+					CustomGrabInteractable.HoverShake.Delta(q, Mathf.Max(sizeBounds.size.x, Mathf.Max(sizeBounds.size.y, sizeBounds.size.z)), 1f, out peakOffset, out peakTilt);
+					peak = Mathf.Max(peak, peakOffset.magnitude);
+				}
+				Log("SHAKE peak shown distance " + (peak * 1000f).ToString("F1") + " mm; while shaking: transform moved "
+					+ (Vector3.Distance(realPosition, grab.transform.position) * 1000f).ToString("F3") + " mm, rotated " + Quaternion.Angle(realRotation, grab.transform.rotation).ToString("F3") + " deg, rigidbody moved "
+					+ (realBody != null ? Vector3.Distance(bodyPosition, realBody.position) * 1000f : 0f).ToString("F3") + " mm, collider moved " + (realCollider != null ? Vector3.Distance(colliderCenter, realCollider.bounds.center) * 1000f : 0f).ToString("F3") + " mm; static batched " + shakeRenderers[0].isPartOfStaticBatch);
+				shake.End();
+				Log("SHAKE ended: original draws " + !shakeRenderers[0].forceRenderingOff + ", copies active " + grab.GetComponentsInChildren<MeshRenderer>().Length + " renderer(s) (1 = none)");
+				beam.gameObject.SetActive(true);
+
+				// Losing the target: back to the crisp look.
+				for (int f = 0; f <= Mathf.RoundToInt(FeedbackFX.BeamTargetBlendOut / BeamFrame); f++)
+				{
+					StepBeam(beam, motion, sidewalkOrigin, sidewalkAim, sidewalkEnd, true, false);
+				}
+				MeasureBeam("sidewalk again, " + FeedbackFX.BeamTargetBlendOut.ToString("F2") + " s after losing the target", beam, motion, sidewalkOrigin, sidewalkAim, sidewalkEnd);
+				beam.Clear(true);
+				motion.Reset();
+
 				rig.HideHand();   // the later shots are about the object / containers
 				sparkles.gameObject.SetActive(true);
 
@@ -367,6 +519,7 @@ public static class ParticleSnapshot
 		{
 			Save(ContactSheet(tiles, names), Path.Combine(outDir, tag + "_contactsheet.png"));
 		}
+		GrabProbes.Run(grabProbeOrigin);
 		Log("RunAll done");
 	}
 
@@ -632,26 +785,178 @@ public static class ParticleSnapshot
 	}
 
 	/// <summary>Places the beam on its curve, advances it by <paramref name="seconds"/> (from scratch if restart), places it again.</summary>
-	private static void SimulateBeam(ParticleSystem beam, Vector3 origin, Vector3 aim, Vector3 end, float visibility, float seconds, bool restart)
+	private static void SimulateBeam(ParticleSystem beam, FeedbackFX.BeamMotion motion, Vector3 origin, Vector3 aim, Vector3 end, bool show, bool target, float seconds, bool restart)
 	{
-		FeedbackFX.PlaceBeam(beam, origin, aim, end, visibility);   // puts the emitter at the tip first
 		if (restart)
 		{
-			beam.Simulate(seconds, true, true);
+			beam.Clear(true);
+			motion.Reset();
 		}
-		else
+		float left = seconds;
+		do
 		{
-			// In small steps, re-placing the lights every step (as every frame at run time).
-			float left = seconds;
-			while (left > 1e-4f)
+			StepBeam(beam, motion, origin, aim, end, show, target);
+			left -= BeamFrame;
+		}
+		while (left > 1e-4f);
+	}
+
+	/// <summary>One frame of the beam, as HandBeamFX.LateUpdate does it once it has decided show / target / end.</summary>
+	private static void StepBeam(ParticleSystem beam, FeedbackFX.BeamMotion motion, Vector3 origin, Vector3 aim, Vector3 end, bool show, bool target)
+	{
+		beam.Simulate(BeamFrame, true, false);
+		motion.Step(BeamFrame, show, target, false, FeedbackFX.BeamFadeSpeed);
+		if (motion.Visibility <= 0f)
+		{
+			beam.Clear(true);
+			return;
+		}
+		FeedbackFX.PlaceBeam(beam, motion, origin, aim, end, BeamFrame);
+	}
+
+	/// <summary>Logs what is really in the particle system: lights, how much of the curve has lights on it, how far off it they are.</summary>
+	private static void MeasureBeam(string label, ParticleSystem beam, FeedbackFX.BeamMotion motion, Vector3 origin, Vector3 aim, Vector3 end)
+	{
+		const int samples = 200;
+		const int bins = 20;
+		ParticleSystem.Particle[] live = new ParticleSystem.Particle[FeedbackFX.BeamMaxParticles];
+		int count = beam.GetParticles(live);
+		Vector3 p0;
+		Vector3 ideal;
+		FeedbackFX.BeamControlPoints(origin, aim, end, out p0, out ideal);
+		Vector3[] curve = new Vector3[samples + 1];
+		float length = 0f;
+		for (int i = 0; i <= samples; i++)
+		{
+			curve[i] = FeedbackFX.Bezier(p0, motion.Belly, end, (float)i / samples);
+			if (i > 0)
 			{
-				float step = Mathf.Min(0.02f, left);
-				beam.Simulate(step, true, false);
-				FeedbackFX.PlaceBeam(beam, origin, aim, end, visibility);
-				left -= step;
+				length += Vector3.Distance(curve[i - 1], curve[i]);
 			}
 		}
-		FeedbackFX.PlaceBeam(beam, origin, aim, end, visibility);
+		bool[] covered = new bool[bins];
+		float sum = 0f;
+		float widest = 0f;
+		int visible = 0;
+		float brightestSize = 0f;
+		for (int i = 0; i < count; i++)
+		{
+			if (live[i].GetCurrentColor(beam).a < 8)
+			{
+				continue;
+			}
+			visible++;
+			float best = float.MaxValue;
+			int at = 0;
+			for (int k = 0; k <= samples; k++)
+			{
+				float d = (live[i].position - curve[k]).sqrMagnitude;
+				if (d < best)
+				{
+					best = d;
+					at = k;
+				}
+			}
+			float off = Mathf.Sqrt(best);
+			sum += off;
+			widest = Mathf.Max(widest, off);
+			brightestSize = Mathf.Max(brightestSize, live[i].GetCurrentSize(beam));
+			covered[Mathf.Min(bins - 1, at * bins / samples)] = true;
+		}
+		int full = 0;
+		foreach (bool c in covered)
+		{
+			if (c)
+			{
+				full++;
+			}
+		}
+		Log("TIMING " + label + ": visibility " + motion.Visibility.ToString("F2") + ", blend " + motion.TargetBlend.ToString("F2")
+			+ ", lights " + count + " (visible " + visible + "), curve covered " + (100f * full / bins).ToString("F0") + "% of " + length.ToString("F2")
+			+ " m, spiral radius mean " + (visible > 0 ? sum / visible * 1000f : 0f).ToString("F1") + " mm, max " + (widest * 1000f).ToString("F1") + " mm, largest light " + (brightestSize * 1000f).ToString("F0")
+			+ " mm; tip error " + (Vector3.Distance(FeedbackFX.Bezier(p0, motion.Belly, end, 1f), end) * 1000f).ToString("F2") + " mm. (An emitter at " + FeedbackFX.BeamSpeed + " m/s would need " + (length / FeedbackFX.BeamSpeed).ToString("F2") + " s to fill this length.)");
+	}
+
+	/// <summary>
+	/// Read-only look at how the far caster's first step treats each residuo: PhysX's hits along the ray to its centre, in
+	/// the order returned, with the same query (mask and "Collide" triggers) and the same rule as XRI's FilteredConecast:
+	/// a hit on a collider not registered to an interactable (XRI registers no trigger colliders by default) is an
+	/// obstruction, and whatever comes later in the list and farther than it is dropped.
+	/// </summary>
+	private static void GrabPathProbe(Vector3 origin)
+	{
+		const int mask = unchecked((int)0x80000021);
+		const float coneRadiusPerMetre = 0.0524f;   // tan(6 degrees / 2)
+		Physics.SyncTransforms();
+		RaycastHit[] hits = new RaycastHit[32];
+		foreach (CustomGrabInteractable residuo in UnityEngine.Object.FindObjectsByType<CustomGrabInteractable>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+		{
+			Vector3 center = residuo.transform.TransformPoint(HandBeamFX.LocalCenter(residuo));
+			Vector3 dir = (center - origin).normalized;
+			int n = Physics.defaultPhysicsScene.Raycast(origin, dir, hits, 10f, mask, QueryTriggerInteraction.Collide);
+			float obstruction = 1000f;
+			bool direct = false;
+			string order = "";
+			for (int i = 0; i < n; i++)
+			{
+				Collider c = hits[i].collider;
+				bool registered = !c.isTrigger && c.GetComponentInParent<CustomGrabInteractable>() != null;
+				order += (i > 0 ? ", " : "") + c.name + (c.isTrigger ? "[trigger]" : "") + "@" + hits[i].distance.ToString("F2");
+				if (hits[i].distance > obstruction)
+				{
+					continue;
+				}
+				if (!registered)
+				{
+					obstruction = Mathf.Min(obstruction, hits[i].distance);
+				}
+				else if (c.GetComponentInParent<CustomGrabInteractable>() == residuo)
+				{
+					direct = true;
+				}
+			}
+			bool rescued = false;
+			if (!direct && obstruction < 1000f)
+			{
+				float radius = coneRadiusPerMetre * obstruction;
+				int m = Physics.defaultPhysicsScene.SphereCast(origin, radius, dir, hits, obstruction, mask, QueryTriggerInteraction.Collide);
+				for (int i = 0; i < m; i++)
+				{
+					Collider c = hits[i].collider;
+					rescued |= !c.isTrigger && c.GetComponentInParent<CustomGrabInteractable>() == residuo;
+				}
+			}
+			Log("GRABPROBE " + residuo.name + " at " + Vector3.Distance(origin, center).ToString("F2") + " m: straight hit kept " + direct + ", else found by the cone (about) " + rescued + "; hits in order: " + order);
+		}
+	}
+
+	private static Texture2D SideBySide(Texture2D left, Texture2D right)
+	{
+		Texture2D result = new Texture2D(left.width + right.width, Mathf.Max(left.height, right.height), TextureFormat.RGBA32, false);
+		result.SetPixels32(new Color32[result.width * result.height]);
+		result.SetPixels32(0, 0, left.width, left.height, left.GetPixels32());
+		result.SetPixels32(left.width, 0, right.width, right.height, right.GetPixels32());
+		result.Apply(false);
+		return result;
+	}
+
+	private static Texture2D Difference(Texture2D a, Texture2D b, float gain)
+	{
+		Color32[] pa = a.GetPixels32();
+		Color32[] pb = b.GetPixels32();
+		Color32[] pd = new Color32[pa.Length];
+		for (int i = 0; i < pa.Length; i++)
+		{
+			pd[i] = new Color32(
+				(byte)Mathf.Clamp(Mathf.Abs(pa[i].r - pb[i].r) * gain, 0f, 255f),
+				(byte)Mathf.Clamp(Mathf.Abs(pa[i].g - pb[i].g) * gain, 0f, 255f),
+				(byte)Mathf.Clamp(Mathf.Abs(pa[i].b - pb[i].b) * gain, 0f, 255f),
+				255);
+		}
+		Texture2D result = new Texture2D(a.width, a.height, TextureFormat.RGBA32, false);
+		result.SetPixels32(pd);
+		result.Apply(false);
+		return result;
 	}
 
 	/// <summary>"Long exposure": per pixel maximum of the frames, the older ones dimmer (frame k of n weighted (k+1)/n).</summary>

@@ -164,6 +164,11 @@ public class CustomGrabInteractable : XRGrabInteractable
 
 	protected override void OnSelectEntering(SelectEnterEventArgs args)
 	{
+		// The grab starts: the shake stops first, so everything from here on sees the object exactly as it is.
+		if (hoverShake != null)
+		{
+			hoverShake.End();
+		}
 		// Only if some other transformer got registered first (so XRI never called AddDefaultSingleGrabTransformer).
 		if (handHoldPose == null && singleGrabTransformersCount > 0)
 		{
@@ -191,6 +196,10 @@ public class CustomGrabInteractable : XRGrabInteractable
 			flyInPose.Begin(transform);
 		}
 		UpdateHoverHighlight();
+		if (interactorsSelecting.Count == 1)
+		{
+			GrabAudio.PlayGrab();
+		}
 		if (args.interactorObject is XRRayInteractor ray)
 		{
 			rayInteractor = ray;
@@ -315,6 +324,7 @@ public class CustomGrabInteractable : XRGrabInteractable
 
 	private void Update()
 	{
+		RefreshPointed();
 		if (farInteractor == null || !isSelected)
 		{
 			return;
@@ -340,6 +350,63 @@ public class CustomGrabInteractable : XRGrabInteractable
 		}
 	}
 
+	// ---------------------------------------------------------------- active residuos, and the target kept after the ray left it
+
+	/// <summary>Residuos alive and enabled right now (read by HandCloseGrab: while there are any, pointing keeps the far ray on).</summary>
+	public static int ActiveCount { get; private set; }
+
+	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+	private static void ResetActiveCount()
+	{
+		ActiveCount = 0;
+	}
+
+	protected override void OnEnable()
+	{
+		base.OnEnable();
+		ActiveCount++;
+	}
+
+	// Per hand (0 left, 1 right): until when this object still counts as pointed at (see HandCloseGrab.TargetHold).
+	private readonly float[] pointedUntil = new float[2];
+	private bool pointedByHold;
+
+	private bool HoldRunning
+	{
+		get
+		{
+			float now = Time.unscaledTime;
+			return now < pointedUntil[0] || now < pointedUntil[1];
+		}
+	}
+
+	/// <summary>The hand keeps this object as its target until that time (Time.unscaledTime).</summary>
+	public void KeepPointed(bool left, float until)
+	{
+		pointedUntil[left ? 0 : 1] = until;
+		if (!pointedByHold)
+		{
+			pointedByHold = true;
+			UpdateHoverHighlight();
+		}
+	}
+
+	/// <summary>The hand no longer keeps this object: it took another one, or the time is over.</summary>
+	public void ReleasePointed(bool left)
+	{
+		pointedUntil[left ? 0 : 1] = 0f;
+		RefreshPointed();
+	}
+
+	private void RefreshPointed()
+	{
+		if (pointedByHold && !HoldRunning)
+		{
+			pointedByHold = false;
+			UpdateHoverHighlight();
+		}
+	}
+
 	// ---------------------------------------------------------------- highlight of the pointed object (HighlightPulse)
 
 	protected override void OnHoverEntered(HoverEnterEventArgs args)
@@ -356,15 +423,236 @@ public class CustomGrabInteractable : XRGrabInteractable
 
 	protected override void OnDisable()
 	{
+		ActiveCount--;
+		pointedUntil[0] = pointedUntil[1] = 0f;
+		pointedByHold = false;
 		SetHoverHighlighted(false);
+		if (hoverShake != null)
+		{
+			hoverShake.End();
+		}
 		UpdateSparkles();   // (no longer active and enabled: stops)
 		base.OnDisable();
 	}
 
 	private void UpdateHoverHighlight()
 	{
-		SetHoverHighlighted(isHovered && !isSelected && !dumped && isActiveAndEnabled);
+		SetHoverHighlighted((isHovered || HoldRunning) && !isSelected && !dumped && isActiveAndEnabled);
+		UpdateHoverShake();
 		UpdateSparkles();
+	}
+
+	// ---------------------------------------------------------------- "telekinesis" shake of the pointed object
+	// While hovered, the object looks as if it were trying to move, but stays where it is. Only what is SEEN moves: the
+	// object's own transform, Rigidbody and colliders are never touched, so hover rays cannot flicker, physics and the
+	// grab do not notice, and when it stops nothing has to be put back but the renderer's switch.
+
+	// Displacement (m): this fraction of the object's largest size, kept within min .. max. On Quest 3 one pixel at 3 m is
+	// about 2 mm, so the minimum moves a small object about one pixel each way.
+	public const float HoverShakeSizeFactor = 0.015f;
+	public const float HoverShakeMinAmplitude = 0.0025f;
+	public const float HoverShakeMaxAmplitude = 0.0045f;
+	// Tilt around its centre (degrees).
+	public const float HoverShakeTilt = 1.5f;
+	// Frequencies per axis (Hz): slow and subtle, and unrelated, so it does not look mechanical.
+	public static readonly Vector3 HoverShakeHz = new Vector3(6.5f, 8.5f, 5.5f);
+	// Slow swell of the strength (Hz), and how deep (0 = none, 1 = down to nothing): it strains, then strains harder.
+	public const float HoverShakeSwellHz = 1.15f;
+	public const float HoverShakeSwellDepth = 0.35f;
+	// Seconds to reach full strength. It stops at once.
+	public const float HoverShakeRamp = 0.1f;
+
+	private HoverShake hoverShake;
+
+	private void UpdateHoverShake()
+	{
+		if (hoverRenderers == null)
+		{
+			return;   // (Start has not run yet)
+		}
+		if (!hoverHighlighted)
+		{
+			if (hoverShake != null)
+			{
+				hoverShake.End();
+			}
+			return;
+		}
+		if (hoverShake == null)
+		{
+			hoverShake = new HoverShake(hoverRenderers);
+		}
+		hoverShake.Begin();
+	}
+
+	/// <summary>
+	/// Shows some MeshRenderers slightly displaced, without moving them. Each one gets (the first time) an inactive child
+	/// with a copy of its mesh and no collider; while active, the original is told not to draw and the copy is drawn at the
+	/// shaken pose. Static-batched renderers are left alone (they cannot be redrawn from their own mesh). A plain class,
+	/// also used directly by the screenshot harness. Apply does not allocate.
+	/// </summary>
+	public sealed class HoverShake
+	{
+		private readonly IList<MeshRenderer> renderers;
+		private readonly MeshRenderer[] copies;
+		private readonly bool[] shown;
+		private float strength;
+		private float size;
+
+		/// <summary>True between Begin and End.</summary>
+		public bool Active { get; private set; }
+		/// <summary>World-space displacement currently shown (identity when not active).</summary>
+		public Matrix4x4 WorldOffset { get; private set; }
+		/// <summary>How far the object's centre is shown from its real one right now (m).</summary>
+		public float CurrentDistance { get; private set; }
+
+		public HoverShake(IList<MeshRenderer> renderers)
+		{
+			this.renderers = renderers;
+			copies = new MeshRenderer[renderers.Count];
+			shown = new bool[renderers.Count];
+			WorldOffset = Matrix4x4.identity;
+		}
+
+		public void Begin()
+		{
+			if (Active)
+			{
+				return;
+			}
+			Active = true;
+			strength = 0f;
+			size = 0f;
+			for (int i = 0; i < renderers.Count; i++)
+			{
+				MeshRenderer original = renderers[i];
+				shown[i] = false;
+				if (original == null || !original.enabled || !original.gameObject.activeInHierarchy || original.isPartOfStaticBatch)
+				{
+					continue;
+				}
+				MeshFilter filter = original.GetComponent<MeshFilter>();
+				if (filter == null || filter.sharedMesh == null)
+				{
+					continue;
+				}
+				Vector3 extent = original.bounds.size;
+				size = Mathf.Max(size, Mathf.Max(extent.x, Mathf.Max(extent.y, extent.z)));
+				MeshRenderer copy = copies[i];
+				if (copy == null)
+				{
+					GameObject go = new GameObject("Hover Shake Visual");
+					go.SetActive(false);
+					go.transform.SetParent(original.transform, false);
+					go.AddComponent<MeshFilter>();
+					copy = go.AddComponent<MeshRenderer>();
+					copies[i] = copy;
+				}
+				copy.GetComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
+				copy.sharedMaterials = original.sharedMaterials;   // (the pulsing ones, when highlighted)
+				copy.shadowCastingMode = original.shadowCastingMode;
+				copy.receiveShadows = original.receiveShadows;
+				copy.lightProbeUsage = original.lightProbeUsage;
+				copy.reflectionProbeUsage = original.reflectionProbeUsage;
+				copy.renderingLayerMask = original.renderingLayerMask;
+				copy.gameObject.layer = original.gameObject.layer;
+				copy.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+				copy.gameObject.SetActive(true);
+				original.forceRenderingOff = true;
+				shown[i] = true;
+			}
+		}
+
+		/// <summary>The shaken pose for this frame.</summary>
+		public void Apply(float time, float dt)
+		{
+			if (!Active)
+			{
+				return;
+			}
+			strength = Mathf.MoveTowards(strength, 1f, dt / HoverShakeRamp);
+			Vector3 offset;
+			Quaternion tilt;
+			Delta(time, size, strength, out offset, out tilt);
+			CurrentDistance = offset.magnitude;
+			bool any = false;
+			Bounds bounds = new Bounds();
+			for (int i = 0; i < renderers.Count; i++)
+			{
+				if (!shown[i] || renderers[i] == null)
+				{
+					continue;
+				}
+				if (!any)
+				{
+					bounds = renderers[i].bounds;
+					any = true;
+				}
+				else
+				{
+					bounds.Encapsulate(renderers[i].bounds);
+				}
+			}
+			if (!any)
+			{
+				WorldOffset = Matrix4x4.identity;
+				return;
+			}
+			// Tilted around the object's centre, not its pivot (which may be anywhere), then displaced.
+			Vector3 center = bounds.center;
+			Matrix4x4 world = Matrix4x4.TRS(center + offset, tilt, Vector3.one) * Matrix4x4.Translate(-center);
+			WorldOffset = world;
+			for (int i = 0; i < renderers.Count; i++)
+			{
+				if (shown[i] && renderers[i] != null && copies[i] != null)
+				{
+					Transform source = renderers[i].transform;
+					copies[i].transform.SetPositionAndRotation(world.MultiplyPoint3x4(source.position), tilt * source.rotation);
+				}
+			}
+		}
+
+		/// <summary>Back to the plain renderer, at once and exactly: nothing but its draw switch was ever changed.</summary>
+		public void End()
+		{
+			if (!Active)
+			{
+				return;
+			}
+			Active = false;
+			WorldOffset = Matrix4x4.identity;
+			CurrentDistance = 0f;
+			for (int i = 0; i < renderers.Count; i++)
+			{
+				if (!shown[i])
+				{
+					continue;
+				}
+				shown[i] = false;
+				if (renderers[i] != null)
+				{
+					renderers[i].forceRenderingOff = false;
+				}
+				if (copies[i] != null)
+				{
+					copies[i].gameObject.SetActive(false);
+				}
+			}
+		}
+
+		/// <summary>The displacement and tilt at a given time, for an object of a given size and strength (0 .. 1).</summary>
+		public static void Delta(float time, float size, float strength, out Vector3 offset, out Quaternion tilt)
+		{
+			const float tau = 6.2831853f;
+			float swell = 1f - HoverShakeSwellDepth * (0.5f + 0.5f * Mathf.Sin(tau * HoverShakeSwellHz * time));
+			float x = Mathf.Sin(tau * HoverShakeHz.x * time);
+			float y = Mathf.Sin(tau * HoverShakeHz.y * time + 1.3f);
+			float z = Mathf.Sin(tau * HoverShakeHz.z * time + 2.1f);
+			float amplitude = Mathf.Clamp(size * HoverShakeSizeFactor, HoverShakeMinAmplitude, HoverShakeMaxAmplitude) * strength * swell;
+			offset = new Vector3(x, y, z) * amplitude;
+			float degrees = HoverShakeTilt * strength * swell;
+			tilt = Quaternion.Euler(y * degrees, z * degrees, x * degrees);
+		}
 	}
 
 	// ---------------------------------------------------------------- sparkles rising from the pointed / held object (FeedbackFX)
@@ -374,7 +662,7 @@ public class CustomGrabInteractable : XRGrabInteractable
 
 	private void UpdateSparkles()
 	{
-		bool value = (isHovered || isSelected) && !dumped && isActiveAndEnabled && hoverRenderers != null;
+		bool value = (isHovered || HoldRunning || isSelected) && !dumped && isActiveAndEnabled && hoverRenderers != null;
 		if (value && sparkles == null)
 		{
 			sparkles = FeedbackFX.CreateSparkles(name);
@@ -522,6 +810,10 @@ public class CustomGrabInteractable : XRGrabInteractable
 
 	private void LateUpdate()
 	{
+		if (hoverShake != null && hoverShake.Active)
+		{
+			hoverShake.Apply(Time.time, Time.deltaTime);
+		}
 		if (hoverHighlighted)
 		{
 			UpdateHoverPulse();
@@ -541,7 +833,14 @@ public class CustomGrabInteractable : XRGrabInteractable
 		{
 			copy.Apply(Color.white, 0f, brightness, emission);
 		}
-		hoverPulse.DrawOutline(hoverRenderers, gameObject.layer);
+		if (hoverShake != null && hoverShake.Active)
+		{
+			hoverPulse.DrawOutline(hoverRenderers, gameObject.layer, hoverShake.WorldOffset);
+		}
+		else
+		{
+			hoverPulse.DrawOutline(hoverRenderers, gameObject.layer);
+		}
 	}
 
 	protected override void OnDestroy()

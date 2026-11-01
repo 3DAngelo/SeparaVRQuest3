@@ -492,7 +492,7 @@ public class TutorialIntro : MonoBehaviour
 		{
 			tapa.Open();
 		}
-		Transform destino = contenedor.arrojarAqui != null ? contenedor.arrojarAqui : contenedor.transform;
+		Transform destino = contenedor.RandomArrojarPoint();
 		Vector3 inicio = objeto.transform.position;
 		float t = 0f;
 		while (t < 1f)

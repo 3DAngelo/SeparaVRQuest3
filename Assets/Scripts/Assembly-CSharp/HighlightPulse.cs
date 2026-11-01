@@ -107,6 +107,15 @@ public class HighlightPulse
 	/// </summary>
 	public void DrawOutline(IList<MeshRenderer> renderers, int layer)
 	{
+		DrawOutline(renderers, layer, Matrix4x4.identity);
+	}
+
+	/// <summary>
+	/// The same, with the (not static-batched) meshes displaced by <paramref name="worldOffset"/>: an object shown slightly
+	/// off its real pose (CustomGrabInteractable.HoverShake) keeps its outline around what is seen.
+	/// </summary>
+	public void DrawOutline(IList<MeshRenderer> renderers, int layer, Matrix4x4 worldOffset)
+	{
 		if (outlineMaterial == null || maskMaterial == null || renderers == null)
 		{
 			return;
@@ -140,7 +149,7 @@ public class HighlightPulse
 		Color oc = OutlineColor * Mathf.Lerp(OutlineMinBrightness, 1f, pulse);
 		oc.a = 1f;
 		outlineMaterial.SetColor(OutlineColorId, oc);
-		outlineMaterial.SetVector(OutlineCenterId, bounds.center);
+		outlineMaterial.SetVector(OutlineCenterId, worldOffset.MultiplyPoint3x4(bounds.center));
 		float widthFactor = Mathf.Lerp(OutlineMinWidthFactor, 1f, pulse);
 		outlineMaterial.SetFloat(OutlineWidthId, Width * widthFactor);
 		outlineMaterial.SetFloat(OutlineMinPixelsId, MinPixels * widthFactor);
@@ -166,7 +175,7 @@ public class HighlightPulse
 			int first = batched ? meshRenderer.subMeshStartIndex : 0;
 			int count = batched ? Mathf.Max(1, meshRenderer.sharedMaterials.Length) : mesh.subMeshCount;
 			// (Scene static batching has no batch root, here and in the original build: the vertices are in world space.)
-			Matrix4x4 matrix = batched ? Matrix4x4.identity : meshRenderer.transform.localToWorldMatrix;
+			Matrix4x4 matrix = batched ? Matrix4x4.identity : worldOffset * meshRenderer.transform.localToWorldMatrix;
 			for (int i = 0; i < count; i++)
 			{
 				int subMesh = first + i;
