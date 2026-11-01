@@ -51,8 +51,8 @@ public static class FeedbackFX
 	// Speed of the lights flowing from the tip to the hand (m/s along the curve).
 	public const float BeamSpeed = 2.2f;
 	// Speed of the lights in the target look (m/s): slow enough to follow them along the spiral. At 72 fps they move about
-	// 1.1 cm per frame against 3.75 cm between lights of one strand, so they read as moving instead of flickering.
-	public const float BeamTargetSpeed = 0.8f;
+	// 0.9 cm per frame against 3.75 cm between lights of one strand, so they read as moving instead of flickering.
+	public const float BeamTargetSpeed = 0.65f;
 	// In the target look a light takes at least this long (s) from tip to hand, also on a short beam.
 	public const float BeamTargetMinTravelTime = 0.5f;
 	// The stream starts this far in front of the aim origin, so it does not cover the hand itself.
@@ -96,7 +96,7 @@ public static class FeedbackFX
 	public const float BeamSpiralRadiusJitter = 0.3f;
 	// Turns per metre travelled (the pitch of the helices), plus a slow extra spin with time (rad/s).
 	public const float BeamSpiralTurnsPerMeter = 3f;
-	public const float BeamSpiralSpin = 4f;
+	public const float BeamSpiralSpin = 3.2f;
 
 	// Each light is a short streak along the flow: stretched by its velocity times this (seconds).
 	public const float BeamStreak = 0.012f;
@@ -179,6 +179,49 @@ public static class FeedbackFX
 	public static readonly Color GlitterWarmWhite = new Color(1f, 0.95f, 0.75f, 1f);
 	// Fireworks that can be in the air at once (pooled); more requests while all are busy are skipped.
 	public const int MaxFireworks = 4;
+
+	// ---- win fireworks
+
+	// Big burst high above the city (see WinFireworks). Sparks per shell, initial speed (m/s), lifetime (s), size (m).
+	public const int WinSparks = 140;
+	public const float WinSparkRadius = 0.1f;
+	public const float WinSpeedMin = 25f;
+	public const float WinSpeedMax = 32f;
+	public const float WinLifeMin = 1.6f;
+	public const float WinLifeMax = 2.4f;
+	public const float WinSizeMin = 0.35f;
+	public const float WinSizeMax = 0.55f;
+	// Air drag (1/s, the burst radius is about speed / drag = 18 m) and gravity factor.
+	public const float WinDrag = 1.6f;
+	public const float WinGravity = 0.12f;
+	// Streak length factor (s), the point of life where the sparks start to fade out, and their size at the end of life.
+	public const float WinStreak = 0.06f;
+	public const float WinFadeStart = 0.55f;
+	public const float WinSizeEnd = 0.35f;
+	// Bright puff at the centre of the burst.
+	public const float WinFlashSize = 14f;
+	public const float WinFlashLife = 0.2f;
+	// Glitter cloud that appears after the sparks and twinkles around the burst.
+	public const int WinGlitterCount = 50;
+	public const float WinGlitterDelay = 0.9f;
+	public const float WinGlitterRadius = 14f;
+	public const float WinGlitterSizeMin = 0.25f;
+	public const float WinGlitterSizeMax = 0.5f;
+	public const float WinGlitterLifeMin = 1.0f;
+	public const float WinGlitterLifeMax = 1.6f;
+	public const float WinGlitterGravity = 0.06f;
+	// Duration of the whole shell (s): the glitter delay plus its longest life.
+	public const float WinShellDuration = 2.5f;
+	// How far the second spark colour moves toward white when no second colour is given, and the flash toward white.
+	public const float WinSparkTint = 0.45f;
+	public const float WinFlashTint = 0.5f;
+	public const float WinFlashAlpha = 0.8f;
+	// Rising trail of the rocket: particles per metre travelled, lifetime (s), size (m) and the cap.
+	public const float WinTrailRate = 2.5f;
+	public const float WinTrailLifeMin = 0.5f;
+	public const float WinTrailLifeMax = 0.8f;
+	public const float WinTrailSize = 0.3f;
+	public const int WinTrailMaxParticles = 110;
 
 	// ---------------------------------------------------------------- wrong deposit: small subdued puff
 
@@ -851,6 +894,165 @@ public static class FeedbackFX
 			new Keyframe(0f, 0.3f), new Keyframe(0.1f, 1f), new Keyframe(0.25f, 0.35f), new Keyframe(0.4f, 1f),
 			new Keyframe(0.55f, 0.35f), new Keyframe(0.72f, 0.85f), new Keyframe(1f, 0f)));
 		SetTile(ps, true);
+	}
+
+	// ---- win fireworks
+
+	/// <summary>
+	/// A new (stopped) large firework shell: an empty root with Sparks, Flash and Glitter as children (in this order), so
+	/// that root.Play(true) runs the whole burst at the root's position. Colour it with SetWinShellColor before Play.
+	/// </summary>
+	public static ParticleSystem CreateWinShell()
+	{
+		ParticleSystem root = NewSystem("Win Shell FX", null, 1);
+		if (root == null)
+		{
+			return null;
+		}
+		ParticleSystem.MainModule rootMain = root.main;
+		rootMain.loop = false;
+		rootMain.duration = WinShellDuration;
+		ParticleSystem.EmissionModule rootEmission = root.emission;
+		rootEmission.enabled = false;
+		root.GetComponent<ParticleSystemRenderer>().enabled = false;
+
+		CreateWinSparks(root.transform);
+		CreateWinFlash(root.transform);
+		CreateWinGlitter(root.transform);
+		return root;
+	}
+
+	private static void CreateWinSparks(Transform parent)
+	{
+		ParticleSystem ps = NewSystem("Sparks", parent, WinSparks);
+		ParticleSystem.MainModule main = ps.main;
+		main.loop = false;
+		main.duration = 1f;
+		main.simulationSpace = ParticleSystemSimulationSpace.World;
+		main.startSpeed = new ParticleSystem.MinMaxCurve(WinSpeedMin, WinSpeedMax);
+		main.startLifetime = new ParticleSystem.MinMaxCurve(WinLifeMin, WinLifeMax);
+		main.startSize = new ParticleSystem.MinMaxCurve(WinSizeMin, WinSizeMax);
+		main.gravityModifier = WinGravity;
+		SetBurst(ps, WinSparks);
+
+		ParticleSystem.ShapeModule shape = ps.shape;
+		shape.enabled = true;
+		shape.shapeType = ParticleSystemShapeType.Sphere;
+		shape.radius = WinSparkRadius;
+		shape.radiusThickness = 0f;   // on the surface: all of them fly outward
+
+		ParticleSystem.LimitVelocityOverLifetimeModule limit = ps.limitVelocityOverLifetime;
+		limit.enabled = true;
+		limit.limit = 100f;
+		limit.drag = WinDrag;
+		limit.multiplyDragByParticleSize = false;
+		limit.multiplyDragByParticleVelocity = false;
+
+		SetAlphaOverLifetime(ps, 1f, 0f, WinFadeStart, 1f);
+		ParticleSystem.SizeOverLifetimeModule size = ps.sizeOverLifetime;
+		size.enabled = true;
+		size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, WinSizeEnd)));
+
+		ParticleSystemRenderer r = ps.GetComponent<ParticleSystemRenderer>();
+		r.renderMode = ParticleSystemRenderMode.Stretch;
+		r.velocityScale = WinStreak;
+		r.lengthScale = 1f;
+		SetTile(ps, false);
+	}
+
+	private static void CreateWinFlash(Transform parent)
+	{
+		ParticleSystem ps = NewSystem("Flash", parent, 1);
+		ParticleSystem.MainModule main = ps.main;
+		main.loop = false;
+		main.duration = 0.5f;
+		main.simulationSpace = ParticleSystemSimulationSpace.World;
+		main.startSpeed = 0f;
+		main.startLifetime = WinFlashLife;
+		main.startSize = WinFlashSize;
+		SetBurst(ps, 1);
+		ParticleSystem.ShapeModule shape = ps.shape;
+		shape.enabled = false;
+		SetAlphaOverLifetime(ps, 1f, 0f, 0.2f, 1f);
+		ParticleSystem.SizeOverLifetimeModule size = ps.sizeOverLifetime;
+		size.enabled = true;
+		size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 0.4f), new Keyframe(1f, 1f)));
+		SetTile(ps, false);
+	}
+
+	private static void CreateWinGlitter(Transform parent)
+	{
+		ParticleSystem ps = NewSystem("Glitter", parent, WinGlitterCount);
+		ParticleSystem.MainModule main = ps.main;
+		main.loop = false;
+		main.duration = 1f;
+		main.startDelay = WinGlitterDelay;
+		main.simulationSpace = ParticleSystemSimulationSpace.World;
+		main.startSpeed = new ParticleSystem.MinMaxCurve(0.05f, 0.25f);
+		main.startLifetime = new ParticleSystem.MinMaxCurve(WinGlitterLifeMin, WinGlitterLifeMax);
+		main.startSize = new ParticleSystem.MinMaxCurve(WinGlitterSizeMin, WinGlitterSizeMax);
+		main.gravityModifier = WinGlitterGravity;
+		SetBurst(ps, WinGlitterCount);
+		ParticleSystem.ShapeModule shape = ps.shape;
+		shape.enabled = true;
+		shape.shapeType = ParticleSystemShapeType.Sphere;
+		shape.radius = WinGlitterRadius;
+		shape.radiusThickness = 1f;
+		SetAlphaOverLifetime(ps, 0f, 0.1f, 0.65f, 1f);
+		ParticleSystem.SizeOverLifetimeModule size = ps.sizeOverLifetime;
+		size.enabled = true;
+		size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(
+			new Keyframe(0f, 0.3f), new Keyframe(0.1f, 1f), new Keyframe(0.25f, 0.35f), new Keyframe(0.4f, 1f),
+			new Keyframe(0.55f, 0.35f), new Keyframe(0.72f, 0.85f), new Keyframe(1f, 0f)));
+		SetTile(ps, true);
+	}
+
+	/// <summary>Colours a shell made by CreateWinShell (call before Play); the second spark colour is the colour lightened.</summary>
+	public static void SetWinShellColor(ParticleSystem shellRoot, Color color)
+	{
+		SetWinShellColor(shellRoot, color, Color.Lerp(color, Color.white, WinSparkTint));
+	}
+
+	/// <summary>Colours a shell made by CreateWinShell (call before Play): each spark picks a colour between the two.</summary>
+	public static void SetWinShellColor(ParticleSystem shellRoot, Color color, Color secondColor)
+	{
+		Transform t = shellRoot.transform;
+		ParticleSystem.MainModule sparks = t.GetChild(0).GetComponent<ParticleSystem>().main;
+		sparks.startColor = new ParticleSystem.MinMaxGradient(color, secondColor);
+		ParticleSystem.MainModule flash = t.GetChild(1).GetComponent<ParticleSystem>().main;
+		Color flashColor = Color.Lerp(color, Color.white, WinFlashTint);
+		flashColor.a = WinFlashAlpha;
+		flash.startColor = flashColor;
+		ParticleSystem.MainModule glitter = t.GetChild(2).GetComponent<ParticleSystem>().main;
+		glitter.startColor = new ParticleSystem.MinMaxGradient(Color.Lerp(color, GlitterWarmWhite, GlitterTint), SparkleWhite);
+	}
+
+	/// <summary>
+	/// A new (stopped) trail for a rising rocket: world-space particles the owner places with Emit along the path, so moving
+	/// back to the street for the next launch never draws a line. Play() it when the rocket starts and Stop(false,
+	/// StopEmitting) at the apex; the particles die by themselves.
+	/// </summary>
+	public static ParticleSystem CreateWinRocketTrail()
+	{
+		ParticleSystem ps = NewSystem("Win Rocket Trail FX", null, WinTrailMaxParticles);
+		if (ps == null)
+		{
+			return null;
+		}
+		ParticleSystem.MainModule main = ps.main;
+		main.loop = true;   // keeps emitting while it plays (the owner stops it at the apex)
+		main.duration = 1f;
+		main.simulationSpace = ParticleSystemSimulationSpace.World;
+		main.startSpeed = 0f;
+		main.startLifetime = new ParticleSystem.MinMaxCurve(WinTrailLifeMin, WinTrailLifeMax);
+		main.startSize = WinTrailSize;
+		main.startColor = Color.white;
+		SetAlphaOverLifetime(ps, 1f, 0f, 0.1f, 1f);
+		ParticleSystem.SizeOverLifetimeModule size = ps.sizeOverLifetime;
+		size.enabled = true;
+		size.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0f, 1f), new Keyframe(1f, 0f)));
+		SetTile(ps, false);
+		return ps;
 	}
 
 	// ---------------------------------------------------------------- wrong deposit

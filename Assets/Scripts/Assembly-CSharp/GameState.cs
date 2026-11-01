@@ -34,6 +34,9 @@ public class GameState : MonoBehaviour
 
 	private IEnumerator ThxForPlaying()
 	{
+		// The Win scene has no city, so the fireworks show happens here, before the fade.
+		WinFireworks.Play();
+		yield return new WaitForSeconds(WinFireworks.ShowSeconds);
 		screenFade.BeginFadeOut();
 		yield return new WaitForSeconds(3f);
 		SceneManager.LoadScene(2);
