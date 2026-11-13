@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copia del LauncherManifest por defecto de Unity 6000.3 con allowBackup desactivado
+     (lo pide la revisión de seguridad de la Meta Horizon Store). -->
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:installLocation="preferExternal">
+    <supports-screens
+        android:smallScreens="true"
+        android:normalScreens="true"
+        android:largeScreens="true"
+        android:xlargeScreens="true"
+        android:anyDensity="true"/>
+
+    <application android:label="@string/app_name"
+                 android:icon="@mipmap/app_icon"
+                 android:allowBackup="false"
+                 tools:replace="android:allowBackup"/>
+</manifest>
