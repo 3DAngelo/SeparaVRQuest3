@@ -37,3 +37,12 @@ main{padding-bottom:1rem}
 .site-footer a{color:#ffffff;margin-right:1rem}
 .site-footer a:hover{color:var(--orange)}
 .site-footer p{margin:.5rem 0 0}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.bar .brand{min-width:0}
+.lang{display:flex;gap:10px;flex-shrink:0}
+.lang a{display:block;line-height:0;border-radius:2px;opacity:.6}
+.lang a:hover,.lang a:focus-visible,.lang a[aria-current="true"]{opacity:1}
+.lang a[aria-current="true"]{outline:2px solid var(--htext);outline-offset:2px}
+.lang a:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.lang svg{display:block;width:28px;height:20px;border-radius:2px;border:1px solid rgba(255,255,255,.55);background:#fff}
+@media (max-width:360px){.brand{gap:8px;font-size:.95rem}.lang{gap:8px}}
